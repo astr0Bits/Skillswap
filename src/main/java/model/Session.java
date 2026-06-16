@@ -17,12 +17,12 @@ public class Session {
     @JoinColumn(name = "mentor_id", nullable = false)
     private User mentor;
 
-    @ManyToOne(optional = true)
-    @JoinColumn(name = "learner_id", nullable = true)
+    @ManyToOne
+    @JoinColumn(name = "learner_id", nullable = false)
     private User learner;
 
     @ManyToOne
-    @JoinColumn(name = "skill_id", nullable = false)
+    @JoinColumn(name = "skill_id", nullable = true)
     private Skill skill;
 
     private LocalDateTime scheduledTime;

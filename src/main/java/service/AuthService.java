@@ -120,14 +120,12 @@ public class AuthService {
 	@Transactional
 	public MessageResponse register(SignupRequest signupRequest, HttpServletRequest request) {
 		String email = signupRequest.getEmail();
-
 		// 1. Check if email is already taken
 		if (userRepository.existsByEmail(email)) {
 			logger.warn("Registration failed: email {} already exists", email);
 			auditLogService.logFailure(email, "REGISTER", request, "Email already in use");
 			throw new IllegalArgumentException("Email already in use");
 		}
-
 		// 2. Validate role (must be LEARNER or SPONSOR – admin creation is separate)
 		Role role;
 		try {
@@ -140,7 +138,6 @@ public class AuthService {
 			auditLogService.logFailure(email, "REGISTER", request, email);
 			throw new IllegalArgumentException("Invalid role type");
 		}
-
 		// 3. Create new user (disabled until email verification)
 		User user = new User();
 		user.setEmail(email);
@@ -152,15 +149,12 @@ public class AuthService {
 		user.setMfaEnabled(false);
 		user.setCredits(0);
 		user.setReputation(0);
-
 		// 4. Save to database
 		userRepository.save(user);
-
 		// 5. Generate OTP and send email
 		String otp = generateOtp();
 		otpService.saveOtp(email, otp);
 		emailService.sendOtpEmail(email, otp);
-
 		// 6. Log success
 		auditLogService.logSuccess(email, "REGISTER", request, "User registered successfully, OTP sent");
 		logger.info("User registered successfully: {}", email);

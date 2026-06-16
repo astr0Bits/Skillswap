@@ -29,5 +29,3 @@ public class HttpsConfig {
         return connector;
     }
 }
- 
- 

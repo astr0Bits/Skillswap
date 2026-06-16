@@ -1,5 +1,4 @@
 package service;
-
 import model.Session;
 import model.ContactMessage;
 import jakarta.mail.MessagingException;
@@ -9,31 +8,43 @@ import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
-
+/**
+ * Service class for sending various types of emails within the SkillSwap application.
+ * Handles OTP, verification, password reset, recommendations, weekly analysis, and contact form emails.
+ * Uses Spring's JavaMailSender for both plain-text and HTML email delivery.
+ */
 @Service
 public class EmailService {
-
     private final JavaMailSender mailSender;
-
     @Value("${app.contact.email:admin@skillswap.com}")
     private String contactEmail; // configurable recipient for contact form
-
     @Value("${app.base.url:http://localhost:8080}")
     private String baseUrl; // base URL for building verification/reset links
-
+    /**
+     * Constructor for EmailService.
+     *
+     * @param mailSender the JavaMailSender instance used to send emails
+     */
     public EmailService(JavaMailSender mailSender) {
         this.mailSender = mailSender;
     }
-
     /**
-     * Validates email format using a simple regex.
+     * Validates an email address using a simple regular expression.
+     * Checks for non-null and a basic email pattern (local-part@domain.tld).
+     *
+     * @param email the email address to validate
+     * @return true if the email is valid, false otherwise
      */
     private boolean isValidEmail(String email) {
         return email != null && email.matches("^[\\w-.]+@[\\w-]+\\.[a-zA-Z]{2,}$");
     }
-
     /**
      * Sends an HTML email containing a one‑time password (OTP) – used for password reset or MFA.
+     *
+     * @param to  the recipient's email address
+     * @param otp the one‑time password to include in the email body
+     * @throws IllegalArgumentException if the recipient email is invalid or missing
+     * @throws RuntimeException         if the email fails to send due to a messaging exception
      */
     public void sendOtpEmail(String to, String otp) {
         if (!isValidEmail(to)) {
@@ -56,12 +67,13 @@ public class EmailService {
             throw new RuntimeException("Failed to send OTP email", e);
         }
     }
-
     /**
      * Sends an email verification link to a new user.
      *
      * @param to    the recipient's email address
      * @param token the verification token (to be appended to the link)
+     * @throws IllegalArgumentException if the recipient email is invalid or missing
+     * @throws RuntimeException         if the email fails to send due to a messaging exception
      */
     public void sendVerificationEmail(String to, String token) {
         if (!isValidEmail(to)) {
@@ -86,12 +98,13 @@ public class EmailService {
             throw new RuntimeException("Failed to send verification email", e);
         }
     }
-
     /**
      * Sends a password reset email with a token link.
      *
      * @param to    the recipient's email address
      * @param token the reset token (to be used in the link)
+     * @throws IllegalArgumentException if the recipient email is invalid or missing
+     * @throws RuntimeException         if the email fails to send due to a messaging exception
      */
     public void sendPasswordResetEmail(String to, String token) {
         if (!isValidEmail(to)) {
@@ -116,9 +129,14 @@ public class EmailService {
             throw new RuntimeException("Failed to send password reset email", e);
         }
     }
-
     /**
      * Sends a plain‑text email with a review and a sentiment summary.
+     *
+     * @param to      the recipient's email address
+     * @param summary a summary of the sentiment analysis
+     * @param comment the original user review/comment
+     * @throws IllegalArgumentException if the recipient email is invalid or missing
+     * @throws RuntimeException         if the email fails to send
      */
     public void sendRecommendation(String to, String summary, String comment) {
         if (!isValidEmail(to)) {
@@ -130,9 +148,13 @@ public class EmailService {
         message.setText("Review:\n" + comment + "\n\nSentiment Summary:\n" + summary);
         mailSender.send(message);
     }
-
     /**
-     * Sends a weekly ChatGPT analysis with business tips (HTML).
+     * Sends a weekly ChatGPT analysis with business tips in HTML format.
+     *
+     * @param to           the recipient's email address
+     * @param analysisText the HTML-ready analysis content (newlines will be converted to <br>)
+     * @throws IllegalArgumentException if the recipient email is invalid or missing
+     * @throws RuntimeException         if the email fails to send due to a messaging exception
      */
     public void sendWeeklyAnalysis(String to, String analysisText) {
         if (!isValidEmail(to)) {
@@ -153,9 +175,12 @@ public class EmailService {
             throw new RuntimeException("Failed to send weekly analysis email", e);
         }
     }
-
     /**
-     * Sends a contact form submission to a configured admin email (HTML).
+     * Sends a contact form submission to a configured admin email address in HTML format.
+     *
+     * @param contact the ContactMessage object containing name, email, phone, and message
+     * @throws IllegalArgumentException if the contact object is null
+     * @throws RuntimeException         if the email fails to send due to a messaging exception
      */
     public void sendContactEmail(ContactMessage contact) {
         if (contact == null) {
