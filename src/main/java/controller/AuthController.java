@@ -421,7 +421,7 @@ public class AuthController {
 		response.put("roles", roles);
 
 		if (roles.contains("admin")) {
-			response.put("redirectUrl", "/admin.html");
+			response.put("redirectUrl", "/admin-dashboard.html");
 		} else if (roles.contains("sponsor")) {
 			response.put("redirectUrl", "/sponsor-dashboard.html");
 		} else {

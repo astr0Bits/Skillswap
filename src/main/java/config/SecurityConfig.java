@@ -68,7 +68,7 @@ public class SecurityConfig {
 							    "/forgot-password.html", "/verify-otp.html",
 							    "/dashboard.html", "/userProfile.html", "/chat.html", "/ai-matching.html", 
 							    "/browse-skills.html", "/sessions.html", 
-							    "/learner.html", "/sponsor.html", "/admin.html",
+							    "/learner.html", "/sponsor.html", "/admin-dashboard.html",
 							    "/js/**", "/images/**", "/static/**", "/webjars/**",
 							    "/uploads/**", "/default-logo.png",
 							    "/api/auth/**",
