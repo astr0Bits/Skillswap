@@ -31,7 +31,11 @@ public class User {
 
     private String location;
 
+//    @Enumerated(EnumType.STRING)
+//    @Column(name = "role", columnDefinition = "varchar(255)")
+//    private Role role;
     @Enumerated(EnumType.STRING)
+    @Column(columnDefinition = "VARCHAR(20)")
     private Role role;
 
     private boolean enabled;

@@ -675,9 +675,9 @@
     <!-- Modal Header -->
     <div style="background:linear-gradient(135deg,#4f46e5,#818cf8);padding:22px 26px;
                 position:sticky;top:0;z-index:1;">
-      <h3 style="margin:0;color:white;font-size:17px;"> Session Information</h3>
+      <h3 style="margin:0;color:white;font-size:17px;">Request a Session</h3>
       <p style="margin:5px 0 0;color:#c7d2fe;font-size:12px;">
-        Review all details before confirming your booking
+        Choose a time and mode, then confirm your booking
       </p>
     </div>
 
@@ -1122,179 +1122,95 @@ async function searchSkills(query) {
     }
     
     // ── Booking state ───────────────────────────────────────────────
-let pendingBooking = null; // will hold { sessionId }
+let pendingBooking = null; // { mentorId, mentorName, skillName, skillId }
 
-async function openBookingModal(userId, userName, skillName, skillCategory, skillLevel, mode, skillId) {
+function openBookingModal(mentorId, mentorName, skillName, skillCategory, skillLevel, mode, skillId) {
     const modal = document.getElementById('bookingModal');
-    const body = document.getElementById('bookingModalBody');
-    const btn = document.getElementById('confirmBookBtn');
+    const body  = document.getElementById('bookingModalBody');
+    const btn   = document.getElementById('confirmBookBtn');
 
-    // Show loading state immediately
+    pendingBooking = { mentorId, mentorName, skillName, skillId };
+
+    // Default to tomorrow at 10:00
+    const pad = n => String(n).padStart(2, '0');
+    const d   = new Date();
+    d.setDate(d.getDate() + 1);
+    const defVal = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T10:00`;
+
+    // Minimum: 1 hour from now
+    const minD   = new Date(Date.now() + 3600 * 1000);
+    const minVal = `${minD.getFullYear()}-${pad(minD.getMonth()+1)}-${pad(minD.getDate())}T${pad(minD.getHours())}:${pad(minD.getMinutes())}`;
+
+    const isInPerson  = (mode || '').toUpperCase() === 'IN_PERSON';
+    const onlineBorder    = isInPerson ? '#e2e8f0' : '#4f46e5';
+    const inPersonBorder  = isInPerson ? '#4f46e5' : '#e2e8f0';
+
+    btn.disabled = false;
+    btn.style.display = '';
+    btn.innerHTML = 'Confirm &amp; Book Session';
+
+    body.innerHTML = `
+        <div style="font-size:12px;font-weight:600;color:#64748b;text-transform:uppercase;
+                    letter-spacing:.8px;margin-bottom:16px;">Booking Details</div>
+
+        <div style="margin-bottom:14px;">
+          <label style="display:block;font-size:12px;font-weight:600;color:#475569;margin-bottom:5px;">Mentor</label>
+          <div style="padding:9px 12px;background:#f8faff;border:1px solid #e2e8f0;border-radius:8px;
+                      font-size:14px;font-weight:600;">${escapeHtml(mentorName)}</div>
+        </div>
+
+        ${skillName ? `
+        <div style="margin-bottom:14px;">
+          <label style="display:block;font-size:12px;font-weight:600;color:#475569;margin-bottom:5px;">Skill</label>
+          <div style="padding:9px 12px;background:#f8faff;border:1px solid #e2e8f0;border-radius:8px;
+                      font-size:14px;">${escapeHtml(skillName)}</div>
+        </div>` : ''}
+
+        <div style="margin-bottom:14px;">
+          <label for="bookingDateTime"
+                 style="display:block;font-size:12px;font-weight:600;color:#475569;margin-bottom:5px;">
+            Date &amp; Time <span style="color:#ef4444">*</span>
+          </label>
+          <input type="datetime-local" id="bookingDateTime"
+                 value="${defVal}" min="${minVal}"
+                 style="width:100%;padding:9px 12px;border:1px solid #e2e8f0;border-radius:8px;
+                        font-family:'DM Sans',sans-serif;font-size:14px;outline:none;
+                        transition:border-color .2s;"
+                 onfocus="this.style.borderColor='#4f46e5'"
+                 onblur="this.style.borderColor='#e2e8f0'">
+        </div>
+
+        <div style="margin-bottom:14px;">
+          <label style="display:block;font-size:12px;font-weight:600;color:#475569;margin-bottom:8px;">
+            Session Mode <span style="color:#ef4444">*</span>
+          </label>
+          <div style="display:flex;gap:10px;">
+            <label id="lblOnline"
+                   style="flex:1;display:flex;align-items:center;gap:8px;padding:9px 12px;
+                          border:1px solid ${onlineBorder};border-radius:8px;cursor:pointer;font-size:13px;">
+              <input type="radio" name="bookingMode" value="online" ${isInPerson ? '' : 'checked'}
+                     onchange="document.getElementById('lblOnline').style.borderColor='#4f46e5';
+                               document.getElementById('lblInPerson').style.borderColor='#e2e8f0';">
+              💻 Online
+            </label>
+            <label id="lblInPerson"
+                   style="flex:1;display:flex;align-items:center;gap:8px;padding:9px 12px;
+                          border:1px solid ${inPersonBorder};border-radius:8px;cursor:pointer;font-size:13px;">
+              <input type="radio" name="bookingMode" value="in-person" ${isInPerson ? 'checked' : ''}
+                     onchange="document.getElementById('lblInPerson').style.borderColor='#4f46e5';
+                               document.getElementById('lblOnline').style.borderColor='#e2e8f0';">
+              📍 In-Person
+            </label>
+          </div>
+        </div>
+
+        <div style="background:#f0fdf4;border-radius:10px;padding:12px 14px;margin-top:4px;
+                    font-size:12px;color:#065f46;line-height:1.6;">
+          📧 A confirmation email will be sent to your registered address after booking.
+        </div>
+    `;
+
     modal.style.display = 'flex';
-    body.innerHTML = '<p style="text-align:center;padding:40px;color:#64748b;">Loading session details…</p>';
-    btn.disabled = true;
-
-    try {
-        // ── Fetch real available sessions for this mentor+skill ──
-		const res = await authFetch('/api/public-sessions/available');
-		const allSessions = await res.json();
-		
-		// DEBUG — remove after confirming it works
-		console.log('Sessions from API:', allSessions.map(s => ({
-		    id: s.id, mentorId: s.mentorId, skillId: s.skillId,
-		    skill: s.skillName, status: s.status
-		})));
-		console.log('Looking for: mentorId=', userId, 'skillId=', skillId, 'skillName=', skillName);
-		
-		// Match by skillId (most reliable) or fall back to skillName
-		const matchedSession = allSessions.find(s =>
-		    String(s.mentorId) === String(userId) &&
-		    skillId != null && s.skillId != null &&
-		    String(s.skillId) === String(skillId) &&
-		    s.status === 'OPEN'
-		) || allSessions.find(s =>
-		    String(s.mentorId) === String(userId) &&
-		    (s.skillName || '').toLowerCase().trim() === (skillName || '').toLowerCase().trim() &&
-		    s.status === 'OPEN'
-		) || allSessions.find(s =>
-		    String(s.mentorId) === String(userId) && s.status === 'OPEN'
-		);
-
-        if (!matchedSession) {
-            body.innerHTML = `
-                <div style="text-align:center;padding:32px 20px;">
-                    <div style="font-size:2rem;margin-bottom:12px;">📭</div>
-                    <h4 style="color:#0f172a;margin-bottom:6px;">No open session found</h4>
-                    <p style="color:#64748b;font-size:13px;">
-                        ${escapeHtml(userName)} hasn't published an open session for 
-                        <strong>${escapeHtml(skillName)}</strong> yet.<br>
-                        Check the Sessions page or try again later.
-                    </p>
-                    <a href="/sessions.html" style="display:inline-block;margin-top:16px;
-                       padding:9px 20px;background:#4f46e5;color:white;border-radius:8px;
-                       font-size:13px;font-weight:600;text-decoration:none;">
-                        Browse All Sessions
-                    </a>
-                </div>`;
-            btn.style.display = 'none';
-            return;
-        }
-
-        // ── We have a real session — store its ID ──
-        pendingBooking = { sessionId: matchedSession.id };
-        btn.disabled = false;
-        btn.style.display = '';
-
-        const s = matchedSession;
-        const isOnline = s.mode === 'ONLINE';
-        const spotsLeft = s.maxLearners - s.currentLearners;
-
-        const dateStr = s.scheduledTime
-            ? new Date(s.scheduledTime).toLocaleDateString('en-AE', {
-                weekday:'long', year:'numeric', month:'long',
-                day:'numeric', hour:'2-digit', minute:'2-digit'
-              })
-            : 'To be confirmed';
-
-        const modeSection = isOnline
-            ? `<div style="background:#eef2ff;border-radius:10px;padding:14px 16px;margin-bottom:12px;">
-                   <div style="font-weight:600;color:#4f46e5;margin-bottom:6px;">
-                       💻 Online Session via Microsoft Teams
-                   </div>
-                   <div style="font-size:13px;color:#475569;line-height:1.6;">
-                       A private Microsoft Teams meeting link will be generated and sent to
-                       your email immediately after booking. You can join from any device.
-                   </div>
-               </div>
-               <div style="background:#f0fdf4;border-radius:10px;padding:14px 16px;margin-bottom:12px;">
-                   <div style="font-weight:600;color:#065f46;margin-bottom:6px;">✅ What to prepare</div>
-                   <div style="font-size:13px;color:#374151;line-height:1.8;">
-                       ${s.toolsNeeded
-                           ? escapeHtml(s.toolsNeeded).replace(/\n/g,'<br>')
-                           : '• Stable internet connection (Wi-Fi recommended)<br>• Microsoft Teams installed — or open in your browser<br>• Notebook or digital notes app ready<br>• Any files or questions you want to discuss<br>• A quiet space free from distractions'}
-                   </div>
-               </div>`
-            : `<div style="background:#fef3c7;border-radius:10px;padding:14px 16px;margin-bottom:12px;">
-                   <div style="font-weight:600;color:#92400e;margin-bottom:6px;">
-                       📍 In-Person Session
-                   </div>
-                   <div style="font-size:13px;color:#78350f;line-height:1.6;">
-                       <strong>Location:</strong> ${escapeHtml(s.location || 'To be confirmed by mentor')}
-                   </div>
-               </div>
-               <div style="background:#f0fdf4;border-radius:10px;padding:14px 16px;margin-bottom:12px;">
-                   <div style="font-weight:600;color:#065f46;margin-bottom:6px;">🎒 What to bring</div>
-                   <div style="font-size:13px;color:#374151;line-height:1.8;">
-                       ${s.toolsNeeded
-                           ? escapeHtml(s.toolsNeeded).replace(/\n/g,'<br>')
-                           : '• Notebook and pen for notes<br>• Your laptop or tablet if relevant<br>• Any materials or questions prepared<br>• Water bottle<br>• Arrive 5 minutes early'}
-                   </div>
-               </div>`;
-
-        body.innerHTML = `
-            <div style="font-size:12px;font-weight:600;color:#64748b;text-transform:uppercase;
-                        letter-spacing:.8px;margin-bottom:12px;">Session Summary</div>
-            <table style="width:100%;font-size:14px;border-collapse:collapse;margin-bottom:18px;">
-              <tr>
-                <td style="padding:9px 0;border-bottom:1px solid #f1f5f9;color:#64748b;width:38%">🎓 Skill</td>
-                <td style="padding:9px 0;border-bottom:1px solid #f1f5f9;font-weight:600;">${escapeHtml(s.skillName)}</td>
-              </tr>
-              <tr>
-                <td style="padding:9px 0;border-bottom:1px solid #f1f5f9;color:#64748b;">👤 Mentor</td>
-                <td style="padding:9px 0;border-bottom:1px solid #f1f5f9;font-weight:600;">${escapeHtml(s.mentorName)}</td>
-              </tr>
-              <tr>
-                <td style="padding:9px 0;border-bottom:1px solid #f1f5f9;color:#64748b;">📅 Date & Time</td>
-                <td style="padding:9px 0;border-bottom:1px solid #f1f5f9;">${dateStr}</td>
-              </tr>
-              <tr>
-                <td style="padding:9px 0;border-bottom:1px solid #f1f5f9;color:#64748b;">⏱️ Duration</td>
-                <td style="padding:9px 0;border-bottom:1px solid #f1f5f9;">${s.durationMinutes} minutes</td>
-              </tr>
-              <tr>
-                <td style="padding:9px 0;border-bottom:1px solid #f1f5f9;color:#64748b;">🪑 Spots left</td>
-                <td style="padding:9px 0;border-bottom:1px solid #f1f5f9;">
-                    <span style="font-weight:600;color:${spotsLeft <= 1 ? '#f59e0b' : '#10b981'};">
-                        ${spotsLeft}
-                    </span> of ${s.maxLearners}
-                </td>
-              </tr>
-              <tr>
-                <td style="padding:9px 0;color:#64748b;">📡 Format</td>
-                <td style="padding:9px 0;">
-                    <span style="background:${isOnline ? '#eef2ff' : '#fef3c7'};
-                                 color:${isOnline ? '#4f46e5' : '#92400e'};
-                                 padding:2px 10px;border-radius:20px;font-size:12px;font-weight:600;">
-                        ${isOnline ? '💻 Online' : '📍 In-Person'}
-                    </span>
-                </td>
-              </tr>
-            </table>
-
-            <div style="font-size:12px;font-weight:600;color:#64748b;text-transform:uppercase;
-                        letter-spacing:.8px;margin-bottom:12px;">
-                ${isOnline ? 'Online Details' : 'Location Details'}
-            </div>
-            ${modeSection}
-
-            ${s.description ? `
-            <div style="background:#f8faff;border-radius:10px;padding:14px;margin-bottom:12px;
-                        font-size:13px;color:#475569;line-height:1.6;border:1px solid #e2e8f0;">
-                <div style="font-weight:600;color:#0f172a;margin-bottom:6px;">📋 What you'll learn</div>
-                ${escapeHtml(s.description).replace(/\n/g,'<br>')}
-            </div>` : ''}
-
-            <div style="text-align:center;padding:10px 0 2px;">
-                <span style="font-size:12px;color:#94a3b8;">
-                    📧 A full confirmation email will be sent to your registered email address.
-                </span>
-            </div>`;
-
-    } catch(e) {
-        console.error('openBookingModal error:', e);
-        body.innerHTML = '<p style="text-align:center;color:#ef4444;padding:32px;">Failed to load session. Please try again.</p>';
-        btn.disabled = false;
-    }
 }
 
 function closeBookingModal() {
@@ -1304,33 +1220,55 @@ function closeBookingModal() {
 }
 
 async function confirmBooking() {
-    if (!pendingBooking || !pendingBooking.sessionId) {
+    if (!pendingBooking) {
         showToast('❌ No session selected.');
         return;
     }
 
+    const dateInput = document.getElementById('bookingDateTime');
+    const modeInput = document.querySelector('input[name="bookingMode"]:checked');
+
+    if (!dateInput || !dateInput.value) {
+        showToast('❌ Please select a date and time.');
+        return;
+    }
+
+    // datetime-local gives "YYYY-MM-DDTHH:mm"; backend LocalDateTime needs seconds
+    const scheduledTime = dateInput.value + ':00';
+    const mode = modeInput ? modeInput.value : 'online';
+
     const btn = document.getElementById('confirmBookBtn');
-    btn.textContent = 'Joining…';
+    btn.textContent = 'Booking…';
     btn.disabled = true;
 
     try {
-        const res = await authFetch(`/api/public-sessions/${pendingBooking.sessionId}/join`, {
-            method: 'POST'
+        const payload = {
+            mentorId:        pendingBooking.mentorId,
+            scheduledTime:   scheduledTime,
+            mode:            mode,
+            durationMinutes: 60
+        };
+        if (pendingBooking.skillId)   payload.skillId   = pendingBooking.skillId;
+        if (pendingBooking.skillName) payload.skillName = pendingBooking.skillName;
+
+        const res  = await authFetch('/api/sessions/book', {
+            method: 'POST',
+            body:   JSON.stringify(payload)
         });
         const data = await res.json();
 
         if (res.ok) {
             closeBookingModal();
-            showToast('🎉 Joined! Check your email for confirmation.');
+            showToast('🎉 Session booked! Confirmation email sent.');
         } else {
-            showToast('❌ ' + (data.error || 'Could not join session.'));
-            btn.innerHTML = '✅ Confirm &amp; Book Session';
-            btn.disabled = false;
+            showToast('❌ ' + (data.error || 'Could not book session.'));
+            btn.innerHTML = 'Confirm &amp; Book Session';
+            btn.disabled  = false;
         }
-    } catch(e) {
+    } catch (e) {
         showToast('❌ Network error. Please try again.');
-        btn.innerHTML = '✅ Confirm &amp; Book Session';
-        btn.disabled = false;
+        btn.innerHTML = 'Confirm &amp; Book Session';
+        btn.disabled  = false;
     }
 }
 

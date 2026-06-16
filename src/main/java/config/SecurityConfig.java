@@ -81,7 +81,8 @@ public class SecurityConfig {
 							    "/api/seo/**",
 							    "/api/skills/**"
 							).permitAll().requestMatchers("/api/users/delete/**").authenticated()
-						.requestMatchers("/api/browse/**").authenticated()   // require authentication for browse
+						.requestMatchers("/api/browse/**").authenticated()
+						.requestMatchers("/api/admin/**").hasAuthority("ADMIN")
 						.anyRequest().authenticated()
 						)
 				.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class)

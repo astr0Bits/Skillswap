@@ -34,6 +34,17 @@ public interface SessionRepository extends JpaRepository<Session, Long> {
     default long countCompletedMentorSessions1(User mentor) {
         return countCompletedMentorSessions(mentor, SessionStatus.COMPLETED);
     }
+    // True if the mentor has any non-cancelled session whose window [start, start+duration)
+    // overlaps the new session's window [windowStart, windowEnd).
+    @Query("SELECT CASE WHEN COUNT(s) > 0 THEN true ELSE false END FROM Session s " +
+           "WHERE s.mentor = :mentor " +
+           "AND s.status <> enums.SessionStatus.CANCELLED " +
+           "AND s.scheduledTime < :windowEnd " +
+           "AND s.scheduledTime > :windowStart")
+    boolean hasMentorConflict(@Param("mentor") User mentor,
+                              @Param("windowStart") LocalDateTime windowStart,
+                              @Param("windowEnd") LocalDateTime windowEnd);
+
     @Modifying
     @Query(value = "DELETE FROM sessions WHERE mentor_id = :userId OR learner_id = :userId", nativeQuery = true)
     void deleteByUserId(@Param("userId") Long userId);
