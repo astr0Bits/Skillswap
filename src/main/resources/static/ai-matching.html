@@ -138,14 +138,6 @@
 
         .topbar-title { font-family:'Fraunces',serif; font-size:1.35rem; font-weight:600; color:var(--indigo); letter-spacing:-.3px; }
 
-        .notif-btn {
-            width:38px; height:38px; border-radius:9px; border:1px solid var(--border);
-            background:white; display:flex; align-items:center; justify-content:center;
-            color:var(--muted); cursor:pointer; position:relative; transition:all .2s;
-        }
-
-        .notif-btn:hover { border-color:#c7d2fe; color:var(--indigo); }
-        .notif-dot { width:8px; height:8px; background:var(--rose); border-radius:50%; position:absolute; top:7px; right:7px; border:1.5px solid white; }
 
         /* ─── PAGE ─── */
         .page { padding:32px; max-width:860px; }
@@ -482,10 +474,6 @@
                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                 <span>Profile</span>
             </a>
-            <a href="/chat.html" class="nav-link">
-                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                <span>Messages</span>
-            </a>
             <p class="nav-label">Discover</p>
             <a href="/ai-matching.html" class="nav-link active">
                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
@@ -519,7 +507,6 @@
     <div class="main">
         <header class="topbar">
             <span class="topbar-title">AI‑Powered Skill Matching</span>
-            <button class="notif-btn"><i class="fas fa-bell"></i><span class="notif-dot"></span></button>
         </header>
 
         <div class="page">

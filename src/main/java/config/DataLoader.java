@@ -21,7 +21,16 @@ public class DataLoader implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-        if (skillRepository.count() == 0) {
+        // Detect missing or corrupted seed data (null-named rows from old bug)
+        boolean needsSeed = skillRepository.findByNameIgnoreCase("Python Programming").isEmpty();
+        if (needsSeed) {
+            // Remove any corrupted rows that have no name
+            skillRepository.findAll().stream()
+                .filter(s -> s.getName() == null || s.getName().isBlank())
+                .forEach(skillRepository::delete);
+        }
+        if (!needsSeed) return;
+
             List<String[]> skills = Arrays.asList(
                 // Technical / Programming
                 new String[]{"Python Programming", "Technical / Programming"},
@@ -227,9 +236,10 @@ public class DataLoader implements CommandLineRunner {
 
             for (String[] s : skills) {
                 Skill skill = new Skill();
+                skill.setName(s[0]);
+                skill.setCategory(s[1]);
                 skillRepository.save(skill);
             }
             System.out.println("Seeded " + skills.size() + " skills.");
-        }
     }
 }

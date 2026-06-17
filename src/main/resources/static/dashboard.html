@@ -138,26 +138,6 @@
             letter-spacing: -0.3px;
         }
         .topbar-right { display: flex; align-items: center; gap: 14px; }
-        .notif-btn {
-            width: 38px; height: 38px;
-            border-radius: 9px;
-            border: 1px solid var(--border);
-            background: white;
-            display: flex; align-items: center; justify-content: center;
-            color: var(--muted);
-            cursor: pointer;
-            position: relative;
-            transition: all 0.2s;
-        }
-        .notif-btn:hover { border-color: #c7d2fe; color: var(--indigo); }
-        .notif-dot {
-            width: 8px; height: 8px;
-            background: var(--rose);
-            border-radius: 50%;
-            position: absolute;
-            top: 7px; right: 7px;
-            border: 1.5px solid white;
-        }
         .page {
             padding: 32px;
             flex: 1;
@@ -510,55 +490,6 @@
         }
         .history-pts.earned { color: var(--green); }
         .history-pts.spent  { color: var(--rose); }
-        .notif-panel {
-            display: none;
-            position: fixed;
-            top: 64px; right: 20px;
-            width: 340px;
-            background: white;
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            box-shadow: 0 16px 48px rgba(0,0,0,0.12);
-            z-index: 200;
-            overflow: hidden;
-            animation: fadeSlideDown 0.2s ease forwards;
-        }
-        @keyframes fadeSlideDown {
-            from { opacity:0; transform:translateY(-8px); }
-            to   { opacity:1; transform:translateY(0); }
-        }
-        .notif-panel.open { display: block; }
-        .notif-panel-head {
-            padding: 16px 18px 12px;
-            border-bottom: 1px solid var(--border);
-            display: flex; justify-content: space-between;
-            align-items: center;
-        }
-        .notif-panel-head h4 { font-size: 0.95rem; font-weight: 600; }
-        .notif-mark-read {
-            font-size: 0.78rem; color: var(--indigo);
-            cursor: pointer; background: none; border: none;
-            font-family: inherit; font-weight: 500;
-        }
-        .notif-panel-body { max-height: 340px; overflow-y: auto; }
-        .notif-entry {
-            display: flex; align-items: flex-start; gap: 11px;
-            padding: 13px 18px;
-            border-bottom: 1px solid var(--border);
-            transition: background 0.15s;
-        }
-        .notif-entry:last-child { border-bottom: none; }
-        .notif-entry:hover { background: var(--bg); }
-        .notif-entry.unread { background: #f0f4ff; }
-        .notif-dot-entry {
-            width: 8px; height: 8px; border-radius: 50%;
-            background: var(--indigo); flex-shrink: 0; margin-top: 6px;
-        }
-        .notif-entry.read .notif-dot-entry { background: transparent; }
-        .notif-entry-text { font-size: 0.82rem; line-height: 1.5; }
-        .notif-entry-text strong { font-weight: 600; }
-        .notif-entry-time { font-size: 0.72rem; color: var(--muted); margin-top: 3px; }
-        .notif-empty { padding: 28px; text-align: center; color: var(--muted); font-size: 0.85rem; }
         .role-tabs {
             display: inline-flex;
             background: var(--indigo-light);
@@ -623,12 +554,6 @@
             </svg>
             <span>Profile</span>
         </a>
-        <a href="chat.html" class="nav-link">
-            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-            </svg>
-            <span>Messages</span>
-        </a>
         <p class="nav-label">Discover</p>
         <a href="ai-matching.html" class="nav-link">
             <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -667,12 +592,6 @@
 <div class="main">
     <header class="topbar">
         <span class="topbar-title">SkillSwap UAE</span>
-        <div class="topbar-right">
-            <button class="notif-btn" id="notifBtn">
-                <i class="fas fa-bell"></i>
-                <span class="notif-dot" id="notifDot" style="display:none;"></span>
-            </button>
-        </div>
     </header>
 
     <div class="page">
@@ -829,10 +748,6 @@
     </div>
 </div>
 
-<div class="notif-panel" id="notifPanel">
-    <div class="notif-panel-head"><h4><i class="fas fa-bell"></i> Notifications</h4><button class="notif-mark-read" id="markAllReadBtn">Mark all read</button></div>
-    <div class="notif-panel-body" id="notifPanelBody"><div class="notif-empty">No notifications yet.</div></div>
-</div>
 
 <div id="requestModal" class="modal">
     <div class="modal-content">
@@ -874,7 +789,6 @@
     let skillsList = [];
     let badgesData = [];
     let earningsData = null;
-    let notificationsData = [];
     let mentorCreatedSessions = [];
 
     const viewLearner = document.getElementById('viewLearner');
@@ -889,14 +803,6 @@
         });
     });
 
-    const notifPanel = document.getElementById('notifPanel');
-    document.getElementById('notifBtn').addEventListener('click', (e) => {
-        e.stopPropagation();
-        notifPanel.classList.toggle('open');
-        if (notifPanel.classList.contains('open')) renderNotificationsPanel();
-    });
-    document.addEventListener('click', (e) => { if (!notifPanel.contains(e.target)) notifPanel.classList.remove('open'); });
-    document.getElementById('markAllReadBtn').addEventListener('click', () => alert('Mark all read feature coming soon'));
 
     async function loadDashboard() {
         try {
@@ -926,7 +832,6 @@
             try { mentorCreatedSessions = await apiRequest('/public-sessions/my-sessions'); } catch(e) { mentorCreatedSessions = []; }
             try { badgesData = await apiRequest('/users/me/badges'); } catch(e) { badgesData = []; }
             try { earningsData = await apiRequest('/users/me/earnings'); } catch(e) { earningsData = null; }
-            try { notificationsData = await apiRequest('/notifications/me'); } catch(e) { notificationsData = []; }
 
             renderDashboard();
             await loadMentorsAndSkills();
@@ -990,8 +895,6 @@
         renderRecommendations();
         renderReviews();
         renderMentorView();
-        const unread = (notificationsData || []).filter(n => !n.read);
-        document.getElementById('notifDot').style.display = unread.length > 0 ? 'block' : 'none';
     }
 
     function renderPendingSessions(containerId, sessions) {
@@ -1330,14 +1233,6 @@
         });
     }
 
-    function renderNotificationsPanel() {
-        const body = document.getElementById('notifPanelBody');
-        if (!notificationsData.length) {
-            body.innerHTML = '<div class="notif-empty">No notifications yet.</div>';
-            return;
-        }
-        body.innerHTML = notificationsData.slice(0,10).map(n => `<div class="notif-entry ${n.read ? 'read' : 'unread'}"><div class="notif-dot-entry"></div><div><div class="notif-entry-text">${n.message || ''}</div><div class="notif-entry-time">${n.createdAt ? new Date(n.createdAt).toLocaleString() : ''}</div></div></div>`).join('');
-    }
 
     async function acceptSession(id) { if(confirm('Accept?')){ await apiRequest(`/sessions/${id}/accept`,{method:'PUT'}); alert('Accepted'); loadDashboard(); } }
     async function rejectSession(id) { if(confirm('Reject?')){ await apiRequest(`/sessions/${id}/reject`,{method:'PUT'}); alert('Rejected'); loadDashboard(); } }

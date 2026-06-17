@@ -23,7 +23,13 @@ public interface UserSkillRepository extends JpaRepository<UserSkill, Long> {
             "WHERE us.type = model.UserSkill$SkillType.MENTOR " +
             "AND LOWER(s.name) LIKE LOWER(CONCAT('%', :query, '%'))")
     List<UserSkill> searchMentorsBySkill(@Param("query") String query);
+    @Query("SELECT us FROM UserSkill us JOIN FETCH us.user WHERE us.skill.id = :skillId AND us.type = 'MENTOR'")
+    List<UserSkill> findMentorsBySkillId(@Param("skillId") Long skillId);
+
+    @Query("SELECT us.skill.id, COUNT(us) FROM UserSkill us WHERE us.type = 'MENTOR' GROUP BY us.skill.id")
+    List<Object[]> countMentorsPerSkill();
+
     @Modifying
     @Query(value = "DELETE FROM user_skills WHERE user_id = :userId", nativeQuery = true)
     void deleteByUserId(@Param("userId") Long userId);
-    }
+}
