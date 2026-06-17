@@ -7,7 +7,8 @@ public class CreateSessionDTO {
     private Long skillId;
     private String mode;          // ONLINE or IN_PERSON
     private String meetingLink;   // for ONLINE
-    private String location;      // for IN_PERSON
+    private String location;         // for IN_PERSON (legacy)
+    private String physicalLocation; // for IN_PERSON (preferred)
     private String description;   // what the session covers
     private String toolsNeeded;   // what attendees should bring/prepare
     private int durationMinutes;
@@ -24,6 +25,10 @@ public class CreateSessionDTO {
     public void setMeetingLink(String meetingLink) { this.meetingLink = meetingLink; }
     public String getLocation() { return location; }
     public void setLocation(String location) { this.location = location; }
+    public String getPhysicalLocation() {
+        return physicalLocation != null ? physicalLocation : location;
+    }
+    public void setPhysicalLocation(String physicalLocation) { this.physicalLocation = physicalLocation; }
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
     public String getToolsNeeded() { return toolsNeeded; }

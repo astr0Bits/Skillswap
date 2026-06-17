@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 
 public class BookSessionRequest {
     private Long mentorId;
+    private Long sessionId; // optional: ID of an existing OPEN session to book
     private String skillName;
     private Long skillId;
     private String mode; // "online" or "in-person"
@@ -11,6 +12,8 @@ public class BookSessionRequest {
 
     public Long getMentorId() { return mentorId; }
     public void setMentorId(Long mentorId) { this.mentorId = mentorId; }
+    public Long getSessionId() { return sessionId; }
+    public void setSessionId(Long sessionId) { this.sessionId = sessionId; }
     public String getSkillName() { return skillName; }
     public void setSkillName(String skillName) { this.skillName = skillName; }
     public Long getSkillId() { return skillId; }

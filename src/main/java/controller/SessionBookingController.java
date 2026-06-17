@@ -1,6 +1,7 @@
 package controller;
 
 import dto.BookSessionRequest;
+import dto.CreateSessionDTO;
 import enums.SessionMode;
 import enums.SessionStatus;
 import exception.AvailabilityException;
@@ -18,9 +19,10 @@ import service.SessionEmailService;
 
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/sessions")
@@ -44,130 +46,295 @@ public class SessionBookingController {
         this.emailService = emailService;
     }
 
+    // ── Mentor: create a session ──────────────────────────────────────────────
+
+    @PostMapping("/create")
+    public ResponseEntity<?> createSession(Authentication authentication,
+                                           @RequestBody CreateSessionDTO dto) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(401).body(Map.of("error", "Not authenticated"));
+        }
+        UserDetailsImpl principal = (UserDetailsImpl) authentication.getPrincipal();
+        User mentor = userRepository.findById(principal.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Authenticated user not found"));
+
+        // scheduledTime must be in the future
+        if (dto.getScheduledTime() == null || !dto.getScheduledTime().isAfter(LocalDateTime.now())) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Scheduled time must be in the future"));
+        }
+
+        // durationMinutes 15–480
+        int duration = dto.getDurationMinutes();
+        if (duration < 15 || duration > 480) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Duration must be between 15 and 480 minutes"));
+        }
+
+        // maxLearners 1–50
+        int maxLearners = dto.getMaxLearners() < 1 ? 1 : dto.getMaxLearners();
+        if (maxLearners > 50) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Max learners must be between 1 and 50"));
+        }
+
+        // mode required
+        String mode = dto.getMode();
+        if (mode == null || mode.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Mode is required (ONLINE or IN_PERSON)"));
+        }
+
+        // mode-specific field validation
+        if ("ONLINE".equalsIgnoreCase(mode)) {
+            String link = dto.getMeetingLink();
+            if (link == null || link.isBlank()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Meeting link is required for online sessions"));
+            }
+            String lc = link.toLowerCase();
+            if (!lc.startsWith("https://zoom.us") && !lc.startsWith("https://teams.microsoft.com")) {
+                return ResponseEntity.badRequest().body(
+                        Map.of("error", "Meeting link must start with https://zoom.us or https://teams.microsoft.com"));
+            }
+        } else if ("IN_PERSON".equalsIgnoreCase(mode)) {
+            String loc = dto.getPhysicalLocation();
+            if (loc == null || loc.isBlank()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Physical location is required for in-person sessions"));
+            }
+        } else {
+            return ResponseEntity.badRequest().body(Map.of("error", "Mode must be ONLINE or IN_PERSON"));
+        }
+
+        // skill required
+        if (dto.getSkillId() == null) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Skill is required"));
+        }
+        Skill skill = skillRepository.findById(dto.getSkillId()).orElse(null);
+        if (skill == null) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Skill not found"));
+        }
+
+        Session session = new Session();
+        session.setMentor(mentor);
+        session.setSkill(skill);
+        session.setMode(SessionMode.valueOf(mode.toUpperCase()));
+        session.setStatus(SessionStatus.OPEN);
+        session.setScheduledTime(dto.getScheduledTime());
+        session.setDurationMinutes(duration);
+        session.setMaxLearners(maxLearners);
+        session.setCurrentLearners(0);
+        session.setDescription(dto.getDescription());
+        session.setToolsNeeded(dto.getToolsNeeded());
+
+        if ("ONLINE".equalsIgnoreCase(mode)) {
+            session.setMeetingLink(dto.getMeetingLink());
+        } else {
+            session.setPhysicalLocation(dto.getPhysicalLocation());
+        }
+
+        Session saved = sessionRepository.save(session);
+        return ResponseEntity.status(201).body(toSessionDTO(saved));
+    }
+
+    // ── Learner: book a session ────────────────────────────────────────────────
+
     @PostMapping("/book")
     public ResponseEntity<?> bookSession(Authentication authentication,
-                                          @RequestBody BookSessionRequest request) {
-        // Guard: authentication must be present (set by AuthTokenFilter via JWT)
+                                         @RequestBody BookSessionRequest request) {
         if (authentication == null || !authentication.isAuthenticated()) {
             return ResponseEntity.status(401).body(Map.of("error", "Not authenticated"));
         }
 
-        // Resolve learner from JWT principal — never accept learner_id from the request body
         UserDetailsImpl principal = (UserDetailsImpl) authentication.getPrincipal();
         Long learnerId = principal.getId();
         User learner = userRepository.findById(learnerId)
-            .orElseThrow(() -> new ResourceNotFoundException("Authenticated user not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Authenticated user not found"));
 
-        // Validate mentor
-        if (request.getMentorId() == null) {
-            return ResponseEntity.badRequest().body(Map.of("error", "mentorId is required"));
-        }
-        User mentor = userRepository.findById(request.getMentorId()).orElse(null);
-        if (mentor == null) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Mentor not found"));
-        }
-        if (learner.getId().equals(mentor.getId())) {
-            return ResponseEntity.badRequest().body(Map.of("error", "You cannot book a session with yourself"));
+        Session session;
+        String skillName;
+
+        if (request.getSessionId() != null) {
+            // ── Book an existing OPEN session created by the mentor ──────────
+            session = sessionRepository.findById(request.getSessionId()).orElse(null);
+            if (session == null) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Session not found"));
+            }
+            if (session.getStatus() != SessionStatus.OPEN) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Session is no longer available for booking"));
+            }
+            if (session.getMentor().getId().equals(learnerId)) {
+                return ResponseEntity.badRequest().body(Map.of("error", "You cannot book your own session"));
+            }
+            if (session.getCurrentLearners() >= session.getMaxLearners()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Session is full"));
+            }
+
+            session.setLearner(learner);
+            session.setCurrentLearners(session.getCurrentLearners() + 1);
+            if (session.getCurrentLearners() >= session.getMaxLearners()) {
+                session.setStatus(SessionStatus.SCHEDULED);
+            } else {
+                session.setStatus(SessionStatus.PENDING);
+            }
+            sessionRepository.save(session);
+            skillName = session.getSkill() != null ? session.getSkill().getName() : "Session";
+
+        } else {
+            // ── Create a new session request (learner-initiated flow) ─────────
+            if (request.getMentorId() == null) {
+                return ResponseEntity.badRequest().body(Map.of("error", "mentorId is required"));
+            }
+            User mentor = userRepository.findById(request.getMentorId()).orElse(null);
+            if (mentor == null) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Mentor not found"));
+            }
+            if (learner.getId().equals(mentor.getId())) {
+                return ResponseEntity.badRequest().body(Map.of("error", "You cannot book a session with yourself"));
+            }
+
+            LocalDateTime scheduledTime = request.getScheduledTime();
+            if (scheduledTime == null) {
+                return ResponseEntity.badRequest().body(
+                        Map.of("error", "scheduledTime is required (ISO-8601, e.g. 2026-06-20T10:00:00)"));
+            }
+            if (scheduledTime.isBefore(LocalDateTime.now())) {
+                return ResponseEntity.badRequest().body(Map.of("error", "scheduledTime must be in the future"));
+            }
+
+            if (!isWithinMentorAvailability(mentor, scheduledTime, 60)) {
+                throw new AvailabilityException("Requested time slot is outside mentor availability");
+            }
+            if (sessionRepository.hasMentorConflict(
+                    mentor, scheduledTime.minusMinutes(60), scheduledTime.plusMinutes(60))) {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("error", "Mentor already has a booking that overlaps this time slot"));
+            }
+
+            Skill skill = null;
+            if (request.getSkillId() != null) {
+                skill = skillRepository.findById(request.getSkillId()).orElse(null);
+            }
+            if (skill == null && request.getSkillName() != null) {
+                skill = skillRepository.findByNameIgnoreCase(request.getSkillName()).orElse(null);
+            }
+            skillName = skill != null ? skill.getName()
+                    : (request.getSkillName() != null ? request.getSkillName() : "Session");
+
+            boolean isOnline = !"in-person".equalsIgnoreCase(request.getMode());
+
+            session = new Session();
+            session.setMentor(mentor);
+            session.setLearner(learner);
+            session.setSkill(skill);
+            session.setMode(isOnline ? SessionMode.ONLINE : SessionMode.IN_PERSON);
+            session.setStatus(SessionStatus.PENDING);
+            session.setScheduledTime(scheduledTime);
+            session.setDurationMinutes(60);
+            session.setMaxLearners(1);
+            session.setCurrentLearners(1);
+            sessionRepository.save(session);
         }
 
-        // Resolve scheduled time (required for availability check)
-        LocalDateTime scheduledTime = request.getScheduledTime();
-        if (scheduledTime == null) {
-            return ResponseEntity.badRequest().body(Map.of("error", "scheduledTime is required (ISO-8601, e.g. 2026-06-20T10:00:00)"));
-        }
-        if (scheduledTime.isBefore(LocalDateTime.now())) {
-            return ResponseEntity.badRequest().body(Map.of("error", "scheduledTime must be in the future"));
-        }
-
-        // Validate that the full 60-min session fits within one of the mentor's availability slots
-        if (!isWithinMentorAvailability(mentor, scheduledTime, 60)) {
-            throw new AvailabilityException("Requested time slot is outside mentor availability");
-        }
-
-        // Reject if the mentor is already booked within 60 minutes of the requested time
-        if (sessionRepository.hasMentorConflict(
-                mentor,
-                scheduledTime.minusMinutes(60),
-                scheduledTime.plusMinutes(60))) {
-            return ResponseEntity.badRequest()
-                .body(Map.of("error", "Mentor already has a booking that overlaps this time slot"));
-        }
-
-        // Resolve skill (optional — nullable in DB)
-        Skill skill = null;
-        if (request.getSkillId() != null) {
-            skill = skillRepository.findById(request.getSkillId()).orElse(null);
-        }
-        if (skill == null && request.getSkillName() != null) {
-            skill = skillRepository.findByNameIgnoreCase(request.getSkillName()).orElse(null);
-        }
-
-        // Build and persist session
-        boolean isOnline = !"in-person".equalsIgnoreCase(request.getMode());
-        String meetingLink = isOnline
-            ? "https://teams.microsoft.com/l/meetup-join/skillswap_"
-              + UUID.randomUUID().toString().replace("-", "").substring(0, 12)
-            : null;
-
-        Session session = new Session();
-        session.setMentor(mentor);
-        session.setLearner(learner);
-        session.setSkill(skill);
-        session.setMode(isOnline ? SessionMode.ONLINE : SessionMode.IN_PERSON);
-        session.setStatus(SessionStatus.PENDING);
-        session.setScheduledTime(scheduledTime);
-        session.setDurationMinutes(60);
-        session.setMeetingLink(meetingLink);
-        session.setLocation(isOnline ? null : mentor.getLocation());
-
-        Session saved = sessionRepository.save(session);
-
+        final User mentor = session.getMentor();
+        final String finalSkillName = skillName;
         try {
-            String skillName = skill != null ? skill.getName()
-                : (request.getSkillName() != null ? request.getSkillName() : "Session");
-            emailService.sendBookingConfirmation(learner, mentor, saved, skillName);
-        } catch (Exception emailEx) {
-            // Email failure must NOT roll back the booking
-            System.err.println("=== EMAIL FAILED: " + emailEx.getMessage());
+            emailService.sendBookingConfirmation(learner, mentor, session, finalSkillName);
+        } catch (Exception e) {
+            System.err.println("=== LEARNER EMAIL FAILED: " + e.getMessage());
+        }
+        try {
+            emailService.sendMentorNotification(mentor, learner, session, finalSkillName);
+        } catch (Exception e) {
+            System.err.println("=== MENTOR EMAIL FAILED: " + e.getMessage());
         }
 
         return ResponseEntity.ok(Map.of(
-            "message", "Session booked successfully",
-            "sessionId", saved.getId(),
-            "mode", isOnline ? "ONLINE" : "IN_PERSON",
-            "scheduledTime", saved.getScheduledTime().toString(),
-            "meetingLink", meetingLink != null ? meetingLink : ""
+                "message", "Session booked successfully",
+                "sessionId", session.getId(),
+                "mode", session.getMode() != null ? session.getMode().name() : "",
+                "scheduledTime", session.getScheduledTime() != null ? session.getScheduledTime().toString() : "",
+                "meetingLink", session.getMeetingLink() != null ? session.getMeetingLink() : "",
+                "physicalLocation", session.getPhysicalLocation() != null ? session.getPhysicalLocation() : ""
         ));
     }
 
-    // Returns true if the full session window [scheduledTime, scheduledTime+durationMinutes)
-    // fits inside one of the mentor's declared availability slots.
-    // When the mentor has no availability records at all, booking is allowed (open availability).
+    // ── Learner: upcoming + history sessions ──────────────────────────────────
+
+    @GetMapping("/me/upcoming")
+    public ResponseEntity<?> getMyUpcomingSessions(Authentication authentication) {
+        if (authentication == null) return ResponseEntity.status(401).build();
+        UserDetailsImpl principal = (UserDetailsImpl) authentication.getPrincipal();
+        User user = userRepository.findById(principal.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        List<Session> sessions = sessionRepository.findActiveSessionsForUser(user, LocalDateTime.now());
+        return ResponseEntity.ok(sessions.stream().map(this::toSessionDTO).collect(Collectors.toList()));
+    }
+
+    @GetMapping("/me/history")
+    public ResponseEntity<?> getMySessionHistory(Authentication authentication) {
+        if (authentication == null) return ResponseEntity.status(401).build();
+        UserDetailsImpl principal = (UserDetailsImpl) authentication.getPrincipal();
+        User user = userRepository.findById(principal.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        List<Session> sessions = sessionRepository.findCompletedSessionsForUser(user);
+        return ResponseEntity.ok(sessions.stream().map(this::toSessionDTO).collect(Collectors.toList()));
+    }
+
+    // ── Mentor: pending requests for their sessions ───────────────────────────
+
+    @GetMapping("/mentor/pending")
+    public ResponseEntity<?> getMentorPendingSessions(Authentication authentication) {
+        if (authentication == null) return ResponseEntity.status(401).build();
+        UserDetailsImpl principal = (UserDetailsImpl) authentication.getPrincipal();
+        User mentor = userRepository.findById(principal.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        List<Session> sessions = sessionRepository.findByMentorAndStatus(mentor, SessionStatus.PENDING);
+        return ResponseEntity.ok(sessions.stream().map(this::toSessionDTO).collect(Collectors.toList()));
+    }
+
+    // ── Shared DTO helper ──────────────────────────────────────────────────────
+
+    private Map<String, Object> toSessionDTO(Session s) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("id", s.getId());
+        m.put("skillName", s.getSkill() != null ? s.getSkill().getName() : "");
+        m.put("skillId", s.getSkill() != null ? s.getSkill().getId() : null);
+        m.put("mentorId", s.getMentor() != null ? s.getMentor().getId() : null);
+        m.put("mentorName", s.getMentor() != null ? s.getMentor().getName() : "");
+        m.put("mentorEmail", s.getMentor() != null ? s.getMentor().getEmail() : "");
+        m.put("learnerId", s.getLearner() != null ? s.getLearner().getId() : null);
+        m.put("learnerName", s.getLearner() != null ? s.getLearner().getName() : "");
+        m.put("learnerEmail", s.getLearner() != null ? s.getLearner().getEmail() : "");
+        m.put("scheduledTime", s.getScheduledTime() != null ? s.getScheduledTime().toString() : "");
+        m.put("durationMinutes", s.getDurationMinutes());
+        m.put("mode", s.getMode() != null ? s.getMode().name() : "");
+        m.put("status", s.getStatus() != null ? s.getStatus().name() : "");
+        m.put("meetingLink", s.getMeetingLink() != null ? s.getMeetingLink() : "");
+        m.put("physicalLocation", s.getPhysicalLocation() != null ? s.getPhysicalLocation()
+                : (s.getLocation() != null ? s.getLocation() : ""));
+        m.put("maxLearners", s.getMaxLearners());
+        m.put("currentLearners", s.getCurrentLearners());
+        m.put("description", s.getDescription() != null ? s.getDescription() : "");
+        return m;
+    }
+
+    // ── Availability helpers ───────────────────────────────────────────────────
+
     private boolean isWithinMentorAvailability(User mentor, LocalDateTime scheduledTime, int durationMinutes) {
         List<MentorAvailability> slots = availabilityRepository.findByMentor(mentor);
-        if (slots.isEmpty()) {
-            return true;
-        }
+        if (slots.isEmpty()) return true;
 
-        String requestedDay   = scheduledTime.getDayOfWeek().name();
+        String requestedDay = scheduledTime.getDayOfWeek().name();
         LocalTime sessionStart = scheduledTime.toLocalTime();
-        LocalTime sessionEnd   = sessionStart.plusMinutes(durationMinutes);
+        LocalTime sessionEnd = sessionStart.plusMinutes(durationMinutes);
 
         for (MentorAvailability slot : slots) {
-            boolean dayMatches;
-            if (slot.isRecurring()) {
-                dayMatches = requestedDay.equalsIgnoreCase(slot.getDayOfWeek());
-            } else {
-                dayMatches = slot.getSpecificDate() != null
-                    && slot.getSpecificDate().equals(scheduledTime.toLocalDate());
-            }
+            boolean dayMatches = slot.isRecurring()
+                    ? requestedDay.equalsIgnoreCase(slot.getDayOfWeek())
+                    : slot.getSpecificDate() != null && slot.getSpecificDate().equals(scheduledTime.toLocalDate());
 
             if (dayMatches) {
                 LocalTime start = slot.getStartTime();
-                LocalTime end   = slot.getEndTime();
+                LocalTime end = slot.getEndTime();
                 if (start != null && end != null
-                        && !sessionStart.isBefore(start)  // session starts at or after slot start
-                        && !sessionEnd.isAfter(end)) {    // session ends at or before slot end
+                        && !sessionStart.isBefore(start)
+                        && !sessionEnd.isAfter(end)) {
                     return true;
                 }
             }

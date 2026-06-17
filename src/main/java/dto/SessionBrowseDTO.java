@@ -19,6 +19,7 @@ public class SessionBrowseDTO {
     private SessionMode mode;
     private String meetingLink;
     private String location;
+    private String physicalLocation;
     private String description;
     private String toolsNeeded;
 
@@ -59,6 +60,9 @@ public class SessionBrowseDTO {
 
     public String getLocation() { return location; }
     public void setLocation(String location) { this.location = location; }
+
+    public String getPhysicalLocation() { return physicalLocation; }
+    public void setPhysicalLocation(String physicalLocation) { this.physicalLocation = physicalLocation; }
 
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }

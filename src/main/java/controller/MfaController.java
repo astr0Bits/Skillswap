@@ -1,5 +1,4 @@
 package controller;
-
 import dev.samstevens.totp.qr.QrData;
 import dev.samstevens.totp.qr.QrGenerator;
 import model.User;
@@ -12,17 +11,13 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
-
 @RestController
 @RequestMapping("/api/mfa")
 public class MfaController {
-
     @Autowired
     private UserRepository userRepo;
-
     @Autowired
     private MfaService mfaService;
-
     @PostMapping("/enable")
     public ResponseEntity<?> enableMfa() {
         // Get current authenticated user
@@ -95,7 +90,6 @@ public class MfaController {
     }
     
  // In MfaController.java
-
     @GetMapping("/status")
     public ResponseEntity<?> getMfaStatus() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();

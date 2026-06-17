@@ -756,6 +756,58 @@
                         <div class="card-head"><h3><i class="fas fa-calendar-alt"></i> My Upcoming Sessions</h3></div>
                         <div id="mentorUpcomingContainer"></div>
                     </div>
+                    <div class="card">
+                        <div class="card-head"><h3><i class="fas fa-plus-circle"></i> Create a Session</h3></div>
+                        <div id="createSessionMsg" style="display:none;margin-bottom:12px;padding:10px 14px;border-radius:8px;font-size:13px;"></div>
+                        <div class="form-group" style="margin-bottom:12px;">
+                            <label style="font-size:13px;font-weight:500;color:var(--muted);display:block;margin-bottom:4px;">Skill</label>
+                            <select id="createSkillSelect" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;"></select>
+                        </div>
+                        <div class="form-group" style="margin-bottom:12px;">
+                            <label style="font-size:13px;font-weight:500;color:var(--muted);display:block;margin-bottom:4px;">Date &amp; Time</label>
+                            <input type="datetime-local" id="createScheduledTime" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;">
+                        </div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+                            <div>
+                                <label style="font-size:13px;font-weight:500;color:var(--muted);display:block;margin-bottom:4px;">Duration (mins)</label>
+                                <input type="number" id="createDuration" value="60" min="15" max="480" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;">
+                            </div>
+                            <div>
+                                <label style="font-size:13px;font-weight:500;color:var(--muted);display:block;margin-bottom:4px;">Max Learners</label>
+                                <input type="number" id="createMaxLearners" value="1" min="1" max="50" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;">
+                            </div>
+                        </div>
+                        <div style="margin-bottom:12px;">
+                            <label style="font-size:13px;font-weight:500;color:var(--muted);display:block;margin-bottom:6px;">Mode</label>
+                            <div style="display:flex;gap:16px;">
+                                <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;">
+                                    <input type="radio" name="createMode" value="ONLINE" checked id="createModeOnline"> Online
+                                </label>
+                                <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;">
+                                    <input type="radio" name="createMode" value="IN_PERSON" id="createModeInPerson"> In-Person
+                                </label>
+                            </div>
+                        </div>
+                        <div id="createMeetingLinkGroup" style="margin-bottom:12px;">
+                            <label style="font-size:13px;font-weight:500;color:var(--muted);display:block;margin-bottom:4px;">Meeting Link (Zoom or Teams)</label>
+                            <input type="url" id="createMeetingLink" placeholder="https://zoom.us/j/... or https://teams.microsoft.com/..." style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;">
+                        </div>
+                        <div id="createPhysicalLocationGroup" style="display:none;margin-bottom:12px;">
+                            <label style="font-size:13px;font-weight:500;color:var(--muted);display:block;margin-bottom:4px;">Physical Location</label>
+                            <input type="text" id="createPhysicalLocation" placeholder="Building, room, or address" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;">
+                        </div>
+                        <div style="margin-bottom:12px;">
+                            <label style="font-size:13px;font-weight:500;color:var(--muted);display:block;margin-bottom:4px;">Description (optional)</label>
+                            <textarea id="createDescription" rows="2" placeholder="What will learners gain from this session?" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;resize:vertical;"></textarea>
+                        </div>
+                        <button class="btn btn-primary btn-block" id="submitCreateSession" style="margin-top:4px;">
+                            <i class="fas fa-paper-plane"></i> Publish Session
+                        </button>
+                    </div>
+                    <div class="card">
+                        <div class="card-head"><h3><i class="fas fa-list-alt"></i> My Created Sessions</h3></div>
+                        <div id="mentorCreatedSessionsContainer"><p style="color:var(--muted);text-align:center;padding:16px;">Loading...</p></div>
+                    </div>
                 </div>
                 <div>
                     <div class="card">
@@ -823,6 +875,7 @@
     let badgesData = [];
     let earningsData = null;
     let notificationsData = [];
+    let mentorCreatedSessions = [];
 
     const viewLearner = document.getElementById('viewLearner');
     const viewMentor = document.getElementById('viewMentor');
@@ -870,6 +923,7 @@
             }
 
             try { sessionHistory = await apiRequest('/sessions/me/history'); } catch(e) { sessionHistory = []; }
+            try { mentorCreatedSessions = await apiRequest('/public-sessions/my-sessions'); } catch(e) { mentorCreatedSessions = []; }
             try { badgesData = await apiRequest('/users/me/badges'); } catch(e) { badgesData = []; }
             try { earningsData = await apiRequest('/users/me/earnings'); } catch(e) { earningsData = null; }
             try { notificationsData = await apiRequest('/notifications/me'); } catch(e) { notificationsData = []; }
@@ -902,6 +956,14 @@
         (skillsList || []).forEach(s => {
             skillSelect.innerHTML += `<option value="${s.id}">${s.name} (${s.category || ''})</option>`;
         });
+        // Re-populate the mentor create-session skill dropdown now that skillsList is loaded
+        const createSel = document.getElementById('createSkillSelect');
+        if (createSel) {
+            createSel.innerHTML = '<option value="">-- Select a skill --</option>';
+            (skillsList || []).forEach(s => {
+                createSel.innerHTML += `<option value="${s.id}">${s.name}${s.category ? ' (' + s.category + ')' : ''}</option>`;
+            });
+        }
     }
 
     function renderDashboard() {
@@ -955,15 +1017,67 @@
             sessEl.innerHTML = '<div style="padding:16px;text-align:center;color:var(--muted);">✨ No upcoming sessions. Request one!</div>';
             return;
         }
-        sessEl.innerHTML = upcomingSessions.map(s => `
-            <div class="session-item">
+        sessEl.innerHTML = upcomingSessions.map(s => {
+            const isOnline = s.mode === 'ONLINE';
+            const link = s.meetingLink || '';
+            const isZoom = link.toLowerCase().startsWith('https://zoom.us');
+            const platform = isZoom ? 'Zoom' : 'Teams';
+            const badgeColor = isZoom ? '#0b5cff' : '#464eb8';
+            const physLoc = s.physicalLocation || '';
+
+            const joinBlock = isOnline
+                ? (link
+                    ? `<div style="display:flex;gap:8px;align-items:center;margin:8px 0 4px;flex-wrap:wrap;">
+                         <span style="background:${badgeColor};color:white;font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;">${platform}</span>
+                         <a href="${link}" target="_blank" class="btn btn-primary" style="padding:5px 14px;font-size:12px;text-decoration:none;">
+                           <i class="fas fa-video"></i> Join Session
+                         </a>
+                         <button class="btn btn-outline copy-link-btn" data-link="${link}" style="padding:5px 12px;font-size:12px;">
+                           <i class="fas fa-copy"></i> <span class="copy-label">Copy Link</span>
+                         </button>
+                       </div>`
+                    : `<p style="font-size:12px;color:var(--muted);margin:6px 0;">Meeting link will be provided by mentor.</p>`)
+                : (physLoc
+                    ? `<div style="display:flex;gap:8px;align-items:center;margin:8px 0 4px;flex-wrap:wrap;">
+                         <span style="background:#fef3c7;color:#92400e;font-size:12px;font-weight:500;padding:3px 10px;border-radius:6px;">
+                           📍 ${physLoc}
+                         </span>
+                         <button class="btn btn-outline copy-addr-btn" data-addr="${physLoc}" style="padding:5px 12px;font-size:12px;">
+                           <i class="fas fa-copy"></i> <span class="copy-label">Copy Address</span>
+                         </button>
+                       </div>`
+                    : '');
+
+            return `<div class="session-item">
                 <div class="session-row"><span class="session-title">${s.skillName || ''}</span><span class="session-date">${new Date(s.scheduledTime).toLocaleString()}</span></div>
-                <div class="session-meta"><span class="meta-item"><i class="fas fa-user"></i> ${s.mentorName || s.learnerName || ''}</span><span class="meta-item"><i class="fas fa-clock"></i> ${s.durationMinutes} min</span><span class="meta-item"><i class="fas ${s.mode === 'ONLINE' ? 'fa-video' : 'fa-map-marker-alt'}"></i> ${s.mode === 'ONLINE' ? 'Online' : 'In-person'}</span></div>
-                ${s.meetingLink ? `<div class="meeting-link"><a href="${s.meetingLink}" target="_blank">Join Zoom Meeting</a></div>` : ''}
-                <div class="session-actions"><button class="btn btn-outline complete-session" data-id="${s.id}">Complete</button><button class="btn btn-danger cancel-session" data-id="${s.id}">Cancel</button></div>
-            </div>`).join('');
+                <div class="session-meta">
+                    <span class="meta-item"><i class="fas fa-user"></i> ${s.mentorName || s.learnerName || ''}</span>
+                    <span class="meta-item"><i class="fas fa-clock"></i> ${s.durationMinutes || 60} min</span>
+                    <span class="meta-item"><i class="fas ${isOnline ? 'fa-video' : 'fa-map-marker-alt'}"></i> ${isOnline ? 'Online' : 'In-person'}</span>
+                </div>
+                ${joinBlock}
+                <div class="session-actions">
+                    <button class="btn btn-outline complete-session" data-id="${s.id}">Complete</button>
+                    <button class="btn btn-danger cancel-session" data-id="${s.id}">Cancel</button>
+                </div>
+            </div>`;
+        }).join('');
         sessEl.querySelectorAll('.complete-session').forEach(btn => btn.addEventListener('click', () => completeSession(btn.dataset.id)));
         sessEl.querySelectorAll('.cancel-session').forEach(btn => btn.addEventListener('click', () => cancelSession(btn.dataset.id)));
+        sessEl.querySelectorAll('.copy-link-btn').forEach(btn => btn.addEventListener('click', () => {
+            navigator.clipboard.writeText(btn.dataset.link).then(() => {
+                const lbl = btn.querySelector('.copy-label');
+                lbl.textContent = 'Copied!';
+                setTimeout(() => { lbl.textContent = 'Copy Link'; }, 2000);
+            });
+        }));
+        sessEl.querySelectorAll('.copy-addr-btn').forEach(btn => btn.addEventListener('click', () => {
+            navigator.clipboard.writeText(btn.dataset.addr).then(() => {
+                const lbl = btn.querySelector('.copy-label');
+                lbl.textContent = 'Copied!';
+                setTimeout(() => { lbl.textContent = 'Copy Address'; }, 2000);
+            });
+        }));
     }
 
     function renderSkillsShowcase() {
@@ -1035,8 +1149,48 @@
         const badgeSpan = document.getElementById('pendingBadge');
         if (badgeSpan) badgeSpan.innerText = pendingSessions.length || '';
         const muEl = document.getElementById('mentorUpcomingContainer');
-        if (!upcomingSessions.length) muEl.innerHTML = '<p style="color:var(--muted);text-align:center;padding:16px;">No upcoming sessions.</p>';
-        else muEl.innerHTML = upcomingSessions.map(s => `<div class="history-item"><div class="history-icon hi-completed"><i class="fas fa-calendar"></i></div><div class="history-info"><h4>${s.skillName}</h4><p>${s.learnerName || s.mentorName || ''} · ${new Date(s.scheduledTime).toLocaleString()}</p></div><span style="font-size:0.75rem;color:var(--indigo);">${s.mode === 'ONLINE' ? 'Online' : 'In-person'}</span></div>`).join('');
+        if (!upcomingSessions.length) {
+            muEl.innerHTML = '<p style="color:var(--muted);text-align:center;padding:16px;">No upcoming sessions.</p>';
+        } else {
+            muEl.innerHTML = upcomingSessions.map(s => {
+                const isOnline = s.mode === 'ONLINE';
+                const link = s.meetingLink || '';
+                const physLoc = s.physicalLocation || '';
+                const isZoom = link.toLowerCase().startsWith('https://zoom.us');
+                const platform = isZoom ? 'Zoom' : 'Teams';
+                const linkOrLoc = isOnline
+                    ? (link
+                        ? `<span style="font-size:12px;color:var(--indigo);">${platform}</span>
+                           <a href="${link}" target="_blank" style="font-size:11px;color:var(--indigo);margin-left:6px;word-break:break-all;">${link.length > 40 ? link.slice(0,40)+'…' : link}</a>
+                           <button class="btn btn-outline copy-mentor-link" data-val="${link}" style="padding:2px 8px;font-size:11px;margin-left:6px;">Copy</button>`
+                        : `<span style="font-size:12px;color:var(--muted);">No link set</span>`)
+                    : (physLoc
+                        ? `<span style="font-size:12px;">📍 ${physLoc}</span>
+                           <button class="btn btn-outline copy-mentor-link" data-val="${physLoc}" style="padding:2px 8px;font-size:11px;margin-left:6px;">Copy</button>`
+                        : `<span style="font-size:12px;color:var(--muted);">No location set</span>`);
+                const learners = `${s.currentLearners ?? 0}/${s.maxLearners ?? 1} learner${(s.maxLearners ?? 1) > 1 ? 's' : ''}`;
+                return `<div class="history-item">
+                    <div class="history-icon hi-completed"><i class="fas fa-calendar"></i></div>
+                    <div class="history-info" style="flex:1;">
+                        <h4>${s.skillName || ''}</h4>
+                        <p>${new Date(s.scheduledTime).toLocaleString()}</p>
+                        <div style="margin-top:4px;display:flex;align-items:center;flex-wrap:wrap;gap:4px;">${linkOrLoc}</div>
+                    </div>
+                    <div style="text-align:right;font-size:12px;color:var(--muted);white-space:nowrap;">
+                        <div>${isOnline ? 'Online' : 'In-person'}</div>
+                        <div style="color:var(--indigo);margin-top:2px;">${learners}</div>
+                    </div>
+                </div>`;
+            }).join('');
+            muEl.querySelectorAll('.copy-mentor-link').forEach(btn => btn.addEventListener('click', () => {
+                navigator.clipboard.writeText(btn.dataset.val).then(() => {
+                    const orig = btn.textContent;
+                    btn.textContent = 'Copied!';
+                    setTimeout(() => { btn.textContent = orig; }, 2000);
+                });
+            }));
+        }
+        renderMentorCreatedSessions();
         const ed = earningsData || {};
         document.getElementById('totalEarned').innerText = ed.totalCreditsEarned ?? 0;
         document.getElementById('thisMonthEarned').innerText = ed.thisMonthCredits ?? '—';
@@ -1044,6 +1198,136 @@
         const barsEl = document.getElementById('earningsBarsContainer');
         barsEl.innerHTML = '<p style="color:var(--muted);">No earnings data yet.</p>';
         renderBadges('mentorBadgesGrid', null);
+        initCreateSessionForm();
+    }
+
+    function renderMentorCreatedSessions() {
+        const el = document.getElementById('mentorCreatedSessionsContainer');
+        if (!el) return;
+        if (!mentorCreatedSessions.length) {
+            el.innerHTML = '<p style="color:var(--muted);text-align:center;padding:16px;">No sessions created yet.</p>';
+            return;
+        }
+        el.innerHTML = mentorCreatedSessions.map(s => {
+            const isOnline = s.mode === 'ONLINE' || s.mode?.name === 'ONLINE';
+            const link = s.meetingLink || '';
+            const physLoc = s.physicalLocation || s.location || '';
+            const isZoom = link.toLowerCase().startsWith('https://zoom.us');
+            const platform = isZoom ? 'Zoom' : 'Teams';
+            const linkOrLoc = isOnline
+                ? (link
+                    ? `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                         <span style="background:${isZoom ? '#0b5cff' : '#464eb8'};color:white;font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;">${platform}</span>
+                         <a href="${link}" target="_blank" style="font-size:11px;color:var(--indigo);word-break:break-all;">${link.length > 44 ? link.slice(0,44)+'…' : link}</a>
+                         <button class="btn btn-outline copy-created-val" data-val="${link}" style="padding:2px 8px;font-size:11px;">Copy</button>
+                       </div>`
+                    : '<span style="font-size:12px;color:var(--muted);">No link</span>')
+                : (physLoc
+                    ? `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                         <span style="font-size:12px;">📍 ${physLoc}</span>
+                         <button class="btn btn-outline copy-created-val" data-val="${physLoc}" style="padding:2px 8px;font-size:11px;">Copy</button>
+                       </div>`
+                    : '<span style="font-size:12px;color:var(--muted);">No location set</span>');
+            const learners = `${s.currentLearners ?? 0} / ${s.maxLearners ?? 1} learner${(s.maxLearners ?? 1) > 1 ? 's' : ''}`;
+            const statusColor = s.status === 'OPEN' ? 'var(--green)' : s.status === 'SCHEDULED' ? 'var(--indigo)' : 'var(--muted)';
+            return `<div class="history-item" style="align-items:flex-start;">
+                <div class="history-icon hi-completed" style="margin-top:2px;"><i class="fas fa-chalkboard-teacher"></i></div>
+                <div class="history-info" style="flex:1;">
+                    <h4>${s.skillName || ''}</h4>
+                    <p>${s.scheduledTime ? new Date(s.scheduledTime).toLocaleString() : '—'} · ${s.durationMinutes || 60} min</p>
+                    <div style="margin-top:4px;">${linkOrLoc}</div>
+                </div>
+                <div style="text-align:right;font-size:12px;white-space:nowrap;">
+                    <div style="color:${statusColor};font-weight:600;">${s.status || ''}</div>
+                    <div style="color:var(--indigo);margin-top:2px;">${learners}</div>
+                </div>
+            </div>`;
+        }).join('');
+        el.querySelectorAll('.copy-created-val').forEach(btn => btn.addEventListener('click', () => {
+            navigator.clipboard.writeText(btn.dataset.val).then(() => {
+                const orig = btn.textContent;
+                btn.textContent = 'Copied!';
+                setTimeout(() => { btn.textContent = orig; }, 2000);
+            });
+        }));
+    }
+
+    function initCreateSessionForm() {
+        const sel = document.getElementById('createSkillSelect');
+        if (!sel) return;
+        sel.innerHTML = '<option value="">-- Select a skill --</option>';
+        (skillsList || []).forEach(s => {
+            sel.innerHTML += `<option value="${s.id}">${s.name}${s.category ? ' (' + s.category + ')' : ''}</option>`;
+        });
+        document.querySelectorAll('input[name="createMode"]').forEach(radio => {
+            radio.addEventListener('change', () => {
+                const isOnline = document.getElementById('createModeOnline').checked;
+                document.getElementById('createMeetingLinkGroup').style.display = isOnline ? 'block' : 'none';
+                document.getElementById('createPhysicalLocationGroup').style.display = isOnline ? 'none' : 'block';
+            });
+        });
+        const btn = document.getElementById('submitCreateSession');
+        if (btn._bound) return;
+        btn._bound = true;
+        btn.addEventListener('click', async () => {
+            const msgEl = document.getElementById('createSessionMsg');
+            const showMsg = (text, isError) => {
+                msgEl.textContent = text;
+                msgEl.style.display = 'block';
+                msgEl.style.background = isError ? '#fef2f2' : '#f0fdf4';
+                msgEl.style.color = isError ? '#dc2626' : '#16a34a';
+                msgEl.style.border = `1px solid ${isError ? '#fecaca' : '#bbf7d0'}`;
+            };
+            msgEl.style.display = 'none';
+            const skillId = parseInt(document.getElementById('createSkillSelect').value);
+            const scheduledTime = document.getElementById('createScheduledTime').value;
+            const duration = parseInt(document.getElementById('createDuration').value);
+            const maxLearners = parseInt(document.getElementById('createMaxLearners').value);
+            const isOnline = document.getElementById('createModeOnline').checked;
+            const mode = isOnline ? 'ONLINE' : 'IN_PERSON';
+            const meetingLink = document.getElementById('createMeetingLink').value.trim();
+            const physicalLocation = document.getElementById('createPhysicalLocation').value.trim();
+            const description = document.getElementById('createDescription').value.trim();
+            if (!skillId) { showMsg('Please select a skill.', true); return; }
+            if (!scheduledTime) { showMsg('Please enter a scheduled date and time.', true); return; }
+            if (isNaN(duration) || duration < 15 || duration > 480) { showMsg('Duration must be between 15 and 480 minutes.', true); return; }
+            if (isNaN(maxLearners) || maxLearners < 1 || maxLearners > 50) { showMsg('Max learners must be between 1 and 50.', true); return; }
+            if (isOnline && !meetingLink) { showMsg('A Zoom or Teams meeting link is required for online sessions.', true); return; }
+            if (!isOnline && !physicalLocation) { showMsg('Physical location is required for in-person sessions.', true); return; }
+            const payload = { skillId, scheduledTime, durationMinutes: duration, maxLearners, mode, description };
+            if (isOnline) payload.meetingLink = meetingLink;
+            else payload.physicalLocation = physicalLocation;
+            btn.disabled = true;
+            btn.textContent = 'Publishing…';
+            try {
+                const resp = await fetch('/api/sessions/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify(payload)
+                });
+                const data = await resp.json();
+                if (resp.status === 401) { localStorage.removeItem('jwtToken'); window.location.href = '/login.html'; return; }
+                if (!resp.ok) { showMsg(data.error || 'Failed to create session.', true); return; }
+                showMsg('Session published! Learners can now find and join it.', false);
+                document.getElementById('createSkillSelect').value = '';
+                document.getElementById('createScheduledTime').value = '';
+                document.getElementById('createDuration').value = '60';
+                document.getElementById('createMaxLearners').value = '1';
+                document.getElementById('createModeOnline').checked = true;
+                document.getElementById('createMeetingLinkGroup').style.display = 'block';
+                document.getElementById('createPhysicalLocationGroup').style.display = 'none';
+                document.getElementById('createMeetingLink').value = '';
+                document.getElementById('createPhysicalLocation').value = '';
+                document.getElementById('createDescription').value = '';
+                try { mentorCreatedSessions = await apiRequest('/public-sessions/my-sessions'); } catch(e) { mentorCreatedSessions = []; }
+                renderMentorCreatedSessions();
+            } catch (e) {
+                showMsg(e.message || 'Network error.', true);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-paper-plane"></i> Publish Session';
+            }
+        });
     }
 
     function renderNotificationsPanel() {

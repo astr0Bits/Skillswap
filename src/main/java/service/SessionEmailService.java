@@ -13,104 +13,104 @@ import java.time.format.DateTimeFormatter;
 @Service
 public class SessionEmailService {
 
+    private static final String FROM = "dalal1087226@gmail.com";
+    private static final DateTimeFormatter DATE_FMT =
+            DateTimeFormatter.ofPattern("EEEE, d MMMM yyyy 'at' HH:mm");
+
     private final JavaMailSender mailSender;
 
     public SessionEmailService(JavaMailSender mailSender) {
         this.mailSender = mailSender;
     }
 
+    // ── Learner confirmation ──────────────────────────────────────────────────
+
     public void sendBookingConfirmation(User learner, User mentor,
                                         Session session, String skillName) throws Exception {
-        MimeMessage message = mailSender.createMimeMessage();
-        MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-
-        helper.setFrom("dalal1087226@gmail.com");
-        helper.setTo(learner.getEmail()); // always the registered email, no user input
-        helper.setSubject("SkillSwap – Session Booking Confirmed: " + skillName);
-
-        boolean isOnline = SessionMode.ONLINE.equals(session.getMode());
-        helper.setText(buildEmailBody(learner, mentor, session, skillName, isOnline), true);
-
-        mailSender.send(message);
+        MimeMessage msg = mailSender.createMimeMessage();
+        MimeMessageHelper helper = new MimeMessageHelper(msg, true, "UTF-8");
+        helper.setFrom(FROM);
+        helper.setTo(learner.getEmail());
+        helper.setSubject("Session Booking Confirmed — " + skillName);
+        helper.setText(buildLearnerBody(learner, mentor, session, skillName), true);
+        mailSender.send(msg);
     }
 
-    private String buildEmailBody(User learner, User mentor, Session session,
-                                   String skillName, boolean isOnline) {
+    // ── Mentor notification ───────────────────────────────────────────────────
 
-        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("EEEE, MMMM d yyyy 'at' h:mm a");
+    public void sendMentorNotification(User mentor, User learner,
+                                       Session session, String skillName) throws Exception {
+        MimeMessage msg = mailSender.createMimeMessage();
+        MimeMessageHelper helper = new MimeMessageHelper(msg, true, "UTF-8");
+        helper.setFrom(FROM);
+        helper.setTo(mentor.getEmail());
+        helper.setSubject("New Learner Joined Your Session — " + skillName);
+        helper.setText(buildMentorBody(mentor, learner, session, skillName), true);
+        mailSender.send(msg);
+    }
+
+    // ── Email bodies ──────────────────────────────────────────────────────────
+
+    private String buildLearnerBody(User learner, User mentor,
+                                    Session session, String skillName) {
         String scheduledTime = session.getScheduledTime() != null
-                ? session.getScheduledTime().format(fmt)
-                : "To be confirmed by mentor";
+                ? session.getScheduledTime().format(DATE_FMT) : "To be confirmed";
+        int duration = session.getDurationMinutes() != null ? session.getDurationMinutes() : 60;
+        boolean isOnline = SessionMode.ONLINE.equals(session.getMode());
 
         String modeBlock;
         if (isOnline) {
+            String link = session.getMeetingLink();
+            boolean isZoom = link != null && link.toLowerCase().startsWith("https://zoom.us");
+            String platform = isZoom ? "Zoom" : "Microsoft Teams";
+            String btnColor = isZoom ? "#0b5cff" : "#464eb8";
+            String linkHtml = link != null && !link.isBlank()
+                ? """
+                  <p style="color:#475569;font-size:14px;margin:0 0 12px;">
+                    Join your session using the link below:
+                  </p>
+                  <p style="margin:0 0 8px;">
+                    <a href="%s"
+                       style="display:inline-block;background:%s;color:white;padding:11px 22px;
+                              border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">
+                      Join on %s
+                    </a>
+                  </p>
+                  <p style="margin:0;font-size:11px;color:#94a3b8;word-break:break-all;">%s</p>
+                  """.formatted(link, btnColor, platform, link)
+                : "<p style=\"color:#94a3b8;font-size:13px;\">Your mentor will share the meeting link shortly.</p>";
+
             modeBlock = """
                 <tr>
-                  <td style="padding:10px 0;border-bottom:1px solid #eee;color:#64748b;width:38%%">
-                     Format
-                  </td>
+                  <td style="padding:10px 0;border-bottom:1px solid #eee;color:#64748b;width:38%%">Mode</td>
                   <td style="padding:10px 0;border-bottom:1px solid #eee;">
                     <span style="background:#eef2ff;color:#4f46e5;padding:2px 10px;
-                                 border-radius:20px;font-size:12px;font-weight:600;">
-                       Online
-                    </span>
+                                 border-radius:20px;font-size:12px;font-weight:600;">Online</span>
                   </td>
                 </tr>
                 <tr>
-                  <td style="padding:10px 0;border-bottom:1px solid #eee;color:#64748b;">
-                     Teams Link
-                  </td>
-                  <td style="padding:10px 0;border-bottom:1px solid #eee;">
-                    <a href="%s" style="color:#4f46e5;font-weight:600;word-break:break-all;">
-                      Join Microsoft Teams Meeting
-                    </a><br>
-                    <small style="color:#94a3b8;font-size:11px;">%s</small>
-                  </td>
+                  <td colspan="2" style="padding:16px 0 8px;">%s</td>
                 </tr>
-                <tr>
-                  <td colspan="2" style="padding:14px;background:#eef2ff;border-radius:8px;">
-                    <strong style="color:#4f46e5;"> What to prepare:</strong><br>
-                    <span style="font-size:13px;color:#374151;line-height:1.9;">
-                      • Stable internet connection (Wi-Fi recommended)<br>
-                      • Microsoft Teams installed — or open in your browser<br>
-                      • Notebook or digital notes app ready<br>
-                      • Any files or questions you want to discuss<br>
-                      • A quiet space free from distractions
-                    </span>
-                  </td>
-                </tr>
-                """.formatted(session.getMeetingLink(), session.getMeetingLink());
+                """.formatted(linkHtml);
         } else {
-            String loc = (session.getLocation() != null && !session.getLocation().isBlank())
-                    ? session.getLocation() : "Your mentor will confirm the location shortly";
+            String loc = session.getPhysicalLocation() != null && !session.getPhysicalLocation().isBlank()
+                    ? session.getPhysicalLocation()
+                    : (session.getLocation() != null && !session.getLocation().isBlank()
+                    ? session.getLocation() : "Location to be confirmed by your mentor");
+
             modeBlock = """
                 <tr>
-                  <td style="padding:10px 0;border-bottom:1px solid #eee;color:#64748b;width:38%%">
-                    📡 Format
-                  </td>
+                  <td style="padding:10px 0;border-bottom:1px solid #eee;color:#64748b;width:38%%">Mode</td>
                   <td style="padding:10px 0;border-bottom:1px solid #eee;">
                     <span style="background:#fef3c7;color:#92400e;padding:2px 10px;
-                                 border-radius:20px;font-size:12px;font-weight:600;">
-                      📍 In-Person
-                    </span>
+                                 border-radius:20px;font-size:12px;font-weight:600;">In-Person</span>
                   </td>
                 </tr>
                 <tr>
-                  <td style="padding:10px 0;border-bottom:1px solid #eee;color:#64748b;">
-                    🗺️ Location
-                  </td>
-                  <td style="padding:10px 0;border-bottom:1px solid #eee;">%s</td>
-                </tr>
-                <tr>
-                  <td colspan="2" style="padding:14px;background:#fef9ec;border-radius:8px;">
-                    <strong style="color:#92400e;">🎒 What to bring:</strong><br>
-                    <span style="font-size:13px;color:#374151;line-height:1.9;">
-                      • Notebook and pen for notes<br>
-                      • Your laptop or tablet if relevant<br>
-                      • Any materials or questions prepared in advance<br>
-                      • Water bottle and a light snack<br>
-                      • Arrive 5 minutes early
-                    </span>
+                  <td style="padding:10px 0;border-bottom:1px solid #eee;color:#64748b;">Location</td>
+                  <td style="padding:10px 0;border-bottom:1px solid #eee;">
+                    <p style="margin:0;">Your session will be held at:</p>
+                    <p style="margin:6px 0 0;font-weight:700;color:#0f172a;">%s</p>
                   </td>
                 </tr>
                 """.formatted(loc);
@@ -122,105 +122,142 @@ public class SessionEmailService {
             <body style="margin:0;padding:0;font-family:'DM Sans',Arial,sans-serif;background:#f5f7fc;">
               <div style="max-width:600px;margin:32px auto;background:white;border-radius:16px;
                           overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
-
-                <!-- Header -->
                 <div style="background:linear-gradient(135deg,#4f46e5,#818cf8);padding:32px 36px;">
-                  <h1 style="margin:0;color:white;font-size:22px;">📚 SkillSwap UAE</h1>
-                  <p style="margin:8px 0 0;color:#c7d2fe;font-size:14px;">
-                    Session Booking Confirmation
-                  </p>
+                  <h1 style="margin:0;color:white;font-size:22px;">📚 SkillSwap</h1>
+                  <p style="margin:8px 0 0;color:#c7d2fe;font-size:14px;">Session Booking Confirmed</p>
                 </div>
-
-                <!-- Greeting -->
-                <div style="padding:30px 36px 0;">
-                  <p style="color:#0f172a;font-size:16px;margin:0 0 6px;">
-                    Hi <strong>%s</strong> 
-                  </p>
-                  <p style="color:#64748b;font-size:14px;margin:0 0 24px;">
-                    Your session has been successfully booked!
-                    Your mentor will confirm the exact time shortly.
-                  </p>
+                <div style="padding:28px 36px 0;">
+                  <p style="color:#0f172a;font-size:16px;margin:0 0 4px;">Hi <strong>%s</strong>,</p>
+                  <p style="color:#64748b;font-size:14px;margin:0 0 22px;">Your session has been successfully booked!</p>
                 </div>
-
-                <!-- Session Details Table -->
                 <div style="padding:0 36px 20px;">
                   <table style="width:100%%;border-collapse:collapse;font-size:14px;">
                     <tr>
-                      <td style="padding:10px 0;border-bottom:1px solid #eee;color:#64748b;width:38%%">
-                         Skill
-                      </td>
+                      <td style="padding:10px 0;border-bottom:1px solid #eee;color:#64748b;width:38%%">Skill</td>
                       <td style="padding:10px 0;border-bottom:1px solid #eee;font-weight:600;">%s</td>
                     </tr>
                     <tr>
-                      <td style="padding:10px 0;border-bottom:1px solid #eee;color:#64748b;">
-                         Mentor
-                      </td>
+                      <td style="padding:10px 0;border-bottom:1px solid #eee;color:#64748b;">Mentor</td>
                       <td style="padding:10px 0;border-bottom:1px solid #eee;">%s</td>
                     </tr>
                     <tr>
-                      <td style="padding:10px 0;border-bottom:1px solid #eee;color:#64748b;">
-                         Mentor Email
-                      </td>
+                      <td style="padding:10px 0;border-bottom:1px solid #eee;color:#64748b;">Date &amp; Time</td>
                       <td style="padding:10px 0;border-bottom:1px solid #eee;">%s</td>
                     </tr>
                     <tr>
-                      <td style="padding:10px 0;border-bottom:1px solid #eee;color:#64748b;">
-                         Proposed Date
-                      </td>
-                      <td style="padding:10px 0;border-bottom:1px solid #eee;">%s</td>
-                    </tr>
-                    <tr>
-                      <td style="padding:10px 0;border-bottom:1px solid #eee;color:#64748b;">
-                         Duration
-                      </td>
-                      <td style="padding:10px 0;border-bottom:1px solid #eee;">60 minutes</td>
-                    </tr>
-                    <tr>
-                      <td style="padding:10px 0;border-bottom:1px solid #eee;color:#64748b;">
-                         Status
-                      </td>
-                      <td style="padding:10px 0;border-bottom:1px solid #eee;">
-                        <span style="background:#fef3c7;color:#92400e;padding:3px 10px;
-                                     border-radius:20px;font-size:12px;font-weight:600;">
-                           PENDING CONFIRMATION
-                        </span>
-                      </td>
+                      <td style="padding:10px 0;border-bottom:1px solid #eee;color:#64748b;">Duration</td>
+                      <td style="padding:10px 0;border-bottom:1px solid #eee;">%d minutes</td>
                     </tr>
                     %s
                   </table>
                 </div>
-
-                <!-- Next Steps -->
-                <div style="margin:0 36px 30px;padding:16px;background:#f0fdf4;
-                            border-radius:10px;border-left:4px solid #10b981;">
-                  <strong style="color:#065f46;font-size:14px;">⚠️ Next Steps</strong><br>
-                  <span style="color:#047857;font-size:13px;line-height:1.7;">
-                    Your mentor will review and confirm this session within 24 hours.<br>
-                    You'll receive another email once it's confirmed.<br>
-                    To cancel, please do so at least 24 hours before the session.
-                  </span>
-                </div>
-
-                <!-- Footer -->
-                <div style="padding:18px 36px;background:#f8faff;
-                            border-top:1px solid #e2e8f0;text-align:center;">
-                  <p style="margin:0;color:#94a3b8;font-size:12px;line-height:1.7;">
-                    SkillSwap UAE · Automated confirmation email<br>
-                    Session ID: <strong>#%s</strong>
+                <div style="margin:0 36px 28px;padding:14px 16px;background:#fefce8;
+                            border-radius:8px;border-left:4px solid #f59e0b;">
+                  <p style="margin:0;font-size:13px;color:#92400e;">
+                    If you need to cancel, please do so at least 24 hours before the session.
                   </p>
                 </div>
-
+                <div style="padding:16px 36px;background:#f8faff;border-top:1px solid #e2e8f0;text-align:center;">
+                  <p style="margin:0;color:#94a3b8;font-size:12px;">
+                    SkillSwap &middot; Session #%s
+                  </p>
+                </div>
               </div>
             </body>
             </html>
             """.formatted(
-                learner.getName(),
-                skillName,
+                learner.getName(), skillName, mentor.getName(),
+                scheduledTime, duration, modeBlock, session.getId()
+        );
+    }
+
+    private String buildMentorBody(User mentor, User learner,
+                                   Session session, String skillName) {
+        String scheduledTime = session.getScheduledTime() != null
+                ? session.getScheduledTime().format(DATE_FMT) : "To be confirmed";
+        boolean isOnline = SessionMode.ONLINE.equals(session.getMode());
+
+        String connectionBlock;
+        if (isOnline) {
+            String link = session.getMeetingLink();
+            connectionBlock = link != null && !link.isBlank()
+                ? """
+                  <tr>
+                    <td style="padding:10px 0;border-bottom:1px solid #eee;color:#64748b;width:38%%">Your Link</td>
+                    <td style="padding:10px 0;border-bottom:1px solid #eee;">
+                      <a href="%s" style="color:#4f46e5;word-break:break-all;">%s</a>
+                    </td>
+                  </tr>
+                  """.formatted(link, link)
+                : "";
+        } else {
+            String loc = session.getPhysicalLocation() != null && !session.getPhysicalLocation().isBlank()
+                    ? session.getPhysicalLocation()
+                    : (session.getLocation() != null ? session.getLocation() : "");
+            connectionBlock = !loc.isBlank()
+                ? """
+                  <tr>
+                    <td style="padding:10px 0;border-bottom:1px solid #eee;color:#64748b;width:38%%">Location</td>
+                    <td style="padding:10px 0;border-bottom:1px solid #eee;font-weight:600;">%s</td>
+                  </tr>
+                  """.formatted(loc)
+                : "";
+        }
+
+        return """
+            <!DOCTYPE html>
+            <html>
+            <body style="margin:0;padding:0;font-family:'DM Sans',Arial,sans-serif;background:#f5f7fc;">
+              <div style="max-width:600px;margin:32px auto;background:white;border-radius:16px;
+                          overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+                <div style="background:linear-gradient(135deg,#10b981,#34d399);padding:32px 36px;">
+                  <h1 style="margin:0;color:white;font-size:22px;">📚 SkillSwap</h1>
+                  <p style="margin:8px 0 0;color:#d1fae5;font-size:14px;">A learner has joined your session</p>
+                </div>
+                <div style="padding:28px 36px 0;">
+                  <p style="color:#0f172a;font-size:16px;margin:0 0 4px;">Hi <strong>%s</strong>,</p>
+                  <p style="color:#64748b;font-size:14px;margin:0 0 22px;">
+                    <strong>%s</strong> has just booked a spot in your session.
+                  </p>
+                </div>
+                <div style="padding:0 36px 24px;">
+                  <table style="width:100%%;border-collapse:collapse;font-size:14px;">
+                    <tr>
+                      <td style="padding:10px 0;border-bottom:1px solid #eee;color:#64748b;width:38%%">Learner</td>
+                      <td style="padding:10px 0;border-bottom:1px solid #eee;font-weight:600;">%s</td>
+                    </tr>
+                    <tr>
+                      <td style="padding:10px 0;border-bottom:1px solid #eee;color:#64748b;">Learner Email</td>
+                      <td style="padding:10px 0;border-bottom:1px solid #eee;">%s</td>
+                    </tr>
+                    <tr>
+                      <td style="padding:10px 0;border-bottom:1px solid #eee;color:#64748b;">Skill</td>
+                      <td style="padding:10px 0;border-bottom:1px solid #eee;font-weight:600;">%s</td>
+                    </tr>
+                    <tr>
+                      <td style="padding:10px 0;border-bottom:1px solid #eee;color:#64748b;">Date &amp; Time</td>
+                      <td style="padding:10px 0;border-bottom:1px solid #eee;">%s</td>
+                    </tr>
+                    <tr>
+                      <td style="padding:10px 0;border-bottom:1px solid #eee;color:#64748b;">Mode</td>
+                      <td style="padding:10px 0;border-bottom:1px solid #eee;">%s</td>
+                    </tr>
+                    %s
+                  </table>
+                </div>
+                <div style="padding:16px 36px;background:#f8faff;border-top:1px solid #e2e8f0;text-align:center;">
+                  <p style="margin:0;color:#94a3b8;font-size:12px;">SkillSwap &middot; Session #%s</p>
+                </div>
+              </div>
+            </body>
+            </html>
+            """.formatted(
                 mentor.getName(),
-                mentor.getEmail(),
-                scheduledTime,
-                modeBlock,
-                session.getId()
-            );
+                learner.getName(),
+                learner.getName(), learner.getEmail(),
+                skillName, scheduledTime,
+                isOnline ? "Online" : "In-Person",
+                connectionBlock, session.getId()
+        );
     }
 }

@@ -131,16 +131,19 @@ public class PublicSessionController {
         session.setUpdatedAt(LocalDateTime.now());
         sessionRepository.save(session);
 
-        // Send confirmation email
+        String skillName = session.getSkill() != null ? session.getSkill().getName() : "Session";
+
+        // Learner confirmation
         try {
-            emailService.sendBookingConfirmation(
-                learner,
-                session.getMentor(),
-                session,
-                session.getSkill() != null ? session.getSkill().getName() : "Session"
-            );
+            emailService.sendBookingConfirmation(learner, session.getMentor(), session, skillName);
         } catch (Exception e) {
-            System.err.println("Email failed: " + e.getMessage());
+            System.err.println("Learner email failed: " + e.getMessage());
+        }
+        // Mentor notification
+        try {
+            emailService.sendMentorNotification(session.getMentor(), learner, session, skillName);
+        } catch (Exception e) {
+            System.err.println("Mentor email failed: " + e.getMessage());
         }
 
         return ResponseEntity.ok(Map.of(
@@ -179,6 +182,8 @@ public class PublicSessionController {
         dto.setMode(s.getMode());
         dto.setMeetingLink(s.getMeetingLink());
         dto.setLocation(s.getLocation());
+        dto.setPhysicalLocation(s.getPhysicalLocation() != null ? s.getPhysicalLocation()
+                : s.getLocation());
         dto.setDescription(s.getDescription());
         dto.setToolsNeeded(s.getToolsNeeded());
         dto.setDurationMinutes(s.getDurationMinutes());

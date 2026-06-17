@@ -18,7 +18,7 @@ public class Session {
     private User mentor;
 
     @ManyToOne
-    @JoinColumn(name = "learner_id", nullable = false)
+    @JoinColumn(name = "learner_id", nullable = true)
     private User learner;
 
     @ManyToOne
@@ -33,6 +33,9 @@ public class Session {
 
     private String location;
     private String meetingLink;
+
+    @Column(name = "physical_location")
+    private String physicalLocation;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status")
@@ -98,6 +101,9 @@ public class Session {
 
     public String getMeetingLink() { return meetingLink; }
     public void setMeetingLink(String meetingLink) { this.meetingLink = meetingLink; }
+
+    public String getPhysicalLocation() { return physicalLocation; }
+    public void setPhysicalLocation(String physicalLocation) { this.physicalLocation = physicalLocation; }
 
     public SessionStatus getStatus() { return status; }
     public void setStatus(SessionStatus status) { this.status = status; }

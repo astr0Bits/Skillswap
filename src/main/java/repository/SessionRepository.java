@@ -45,6 +45,11 @@ public interface SessionRepository extends JpaRepository<Session, Long> {
                               @Param("windowStart") LocalDateTime windowStart,
                               @Param("windowEnd") LocalDateTime windowEnd);
 
+    @Query("SELECT s FROM Session s WHERE (s.mentor = :user OR s.learner = :user) " +
+           "AND s.status IN ('PENDING','SCHEDULED','OPEN') " +
+           "AND s.scheduledTime > :now ORDER BY s.scheduledTime ASC")
+    List<Session> findActiveSessionsForUser(@Param("user") User user, @Param("now") LocalDateTime now);
+
     @Modifying
     @Query(value = "DELETE FROM sessions WHERE mentor_id = :userId OR learner_id = :userId", nativeQuery = true)
     void deleteByUserId(@Param("userId") Long userId);
