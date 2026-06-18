@@ -149,7 +149,7 @@ public class EmailService {
         mailSender.send(message);
     }
     /**
-     * Sends a weekly ChatGPT analysis with business tips in HTML format.
+     * Sends a weekly AI analysis with business tips in HTML format.
      *
      * @param to           the recipient's email address
      * @param analysisText the HTML-ready analysis content (newlines will be converted to <br>)
