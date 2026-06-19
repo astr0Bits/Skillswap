@@ -12,6 +12,8 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -22,7 +24,7 @@ public class GeminiMatchingService {
     private static final Logger log = LoggerFactory.getLogger(GeminiMatchingService.class);
 
     private static final String GEMINI_URL =
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent";
 
     @Value("${gemini.api.key:}")
     private String geminiApiKey;
@@ -54,16 +56,16 @@ public class GeminiMatchingService {
     public List<Long> rankMentors(String learnerGoals, String currentLevel,
                                   String preferredSchedule, String desiredSkills,
                                   List<MentorSummary> mentors) {
-        List<Long> fallback = mentors.stream().map(m -> m.userId).collect(Collectors.toList());
-
         log.info("[GeminiMatch] rankMentors called — mentorCount={}, desiredSkills='{}', keyBlank={}",
                 mentors.size(), desiredSkills, (geminiApiKey == null || geminiApiKey.isBlank()));
 
-        if (geminiApiKey == null || geminiApiKey.isBlank()) {
-            log.warn("[GeminiMatch] KEY IS BLANK — skipping Gemini entirely, returning mentors in DB insertion order: {}", fallback);
-            return fallback;
-        }
         if (mentors.isEmpty()) {
+            return List.of();
+        }
+
+        if (geminiApiKey == null || geminiApiKey.isBlank()) {
+            List<Long> fallback = skillAwareFallback(mentors, desiredSkills);
+            log.warn("[GeminiMatch] KEY IS BLANK — using skill-aware fallback: {}", fallback);
             return fallback;
         }
 
@@ -118,7 +120,7 @@ public class GeminiMatchingService {
             }
         } catch (HttpClientErrorException e) {
             if (e.getStatusCode().value() == 429) {
-                log.warn("[GeminiMatch] 429 QUOTA EXHAUSTED — falling back to DB insertion order. Google says: {}",
+                log.warn("[GeminiMatch] 429 QUOTA EXHAUSTED — will use skill-aware fallback. Google says: {}",
                         e.getResponseBodyAsString());
             } else {
                 log.error("[GeminiMatch] Gemini HTTP error {} — {}", e.getStatusCode(), e.getResponseBodyAsString());
@@ -127,7 +129,33 @@ public class GeminiMatchingService {
             log.error("[GeminiMatch] Gemini call threw exception: {} — {}", e.getClass().getSimpleName(), e.getMessage());
         }
 
-        log.warn("[GeminiMatch] USING FALLBACK (DB insertion order): {}", fallback);
+        List<Long> fallback = skillAwareFallback(mentors, desiredSkills);
+        log.warn("[GeminiMatch] USING SKILL-AWARE FALLBACK: {}", fallback);
         return fallback;
+    }
+
+    private List<Long> skillAwareFallback(List<MentorSummary> mentors, String desiredSkills) {
+        List<String> wanted = Arrays.stream(desiredSkills.split(",\\s*"))
+                .map(String::toLowerCase)
+                .filter(s -> !s.isBlank())
+                .collect(Collectors.toList());
+
+        return mentors.stream()
+                .sorted(Comparator
+                        .comparingInt((MentorSummary m) -> -skillOverlap(m.skills, wanted))
+                        .thenComparingDouble(m -> -m.averageRating)
+                        .thenComparingInt(m -> -m.totalSessions))
+                .map(m -> m.userId)
+                .collect(Collectors.toList());
+    }
+
+    private static int skillOverlap(String mentorSkills, List<String> wantedLower) {
+        if (mentorSkills == null || mentorSkills.isBlank()) return 0;
+        String lower = mentorSkills.toLowerCase();
+        int count = 0;
+        for (String w : wantedLower) {
+            if (lower.contains(w)) count++;
+        }
+        return count;
     }
 }
