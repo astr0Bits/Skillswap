@@ -7,7 +7,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.List;
 import java.util.Map;
@@ -18,7 +20,7 @@ public class AiSummaryService {
     private static final Logger log = LoggerFactory.getLogger(AiSummaryService.class);
 
     private static final String GEMINI_URL =
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=";
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
 
     @Value("${gemini.api.key:}")
     private String geminiApiKey;
@@ -54,8 +56,11 @@ public class AiSummaryService {
             headers.setContentType(MediaType.APPLICATION_JSON);
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
 
-            ResponseEntity<String> response = restTemplate.postForEntity(
-                GEMINI_URL + geminiApiKey, request, String.class);
+            String url = UriComponentsBuilder.fromHttpUrl(GEMINI_URL)
+                    .queryParam("key", geminiApiKey)
+                    .toUriString();
+
+            ResponseEntity<String> response = restTemplate.postForEntity(url, request, String.class);
 
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
                 JsonNode root = objectMapper.readTree(response.getBody());
@@ -65,6 +70,12 @@ public class AiSummaryService {
                 if (!text.isBlank()) {
                     return text;
                 }
+            }
+        } catch (HttpClientErrorException e) {
+            if (e.getStatusCode().value() == 429) {
+                log.warn("Gemini quota exhausted for generateSummary (429) — returning fallback.");
+            } else {
+                log.error("Gemini API error for generateSummary: {} — {}", e.getStatusCode(), e.getResponseBodyAsString());
             }
         } catch (Exception e) {
             log.error("Gemini API call failed for generateSummary: {}", e.getMessage());
