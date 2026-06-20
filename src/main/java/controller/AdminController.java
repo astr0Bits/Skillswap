@@ -1,6 +1,8 @@
 package controller;
 
+import enums.BadgeCriteriaType;
 import enums.SessionStatus;
+import model.Badge;
 import model.Session;
 import model.User;
 import org.springframework.data.domain.PageRequest;
@@ -9,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import repository.*;
+import service.BadgeService;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -24,15 +27,21 @@ public class AdminController {
     private final SessionRepository sessionRepository;
     private final ReviewRepository reviewRepository;
     private final AuditLogRepository auditLogRepository;
+    private final BadgeRepository badgeRepository;
+    private final BadgeService badgeService;
 
     public AdminController(UserRepository userRepository,
                            SessionRepository sessionRepository,
                            ReviewRepository reviewRepository,
-                           AuditLogRepository auditLogRepository) {
+                           AuditLogRepository auditLogRepository,
+                           BadgeRepository badgeRepository,
+                           BadgeService badgeService) {
         this.userRepository = userRepository;
         this.sessionRepository = sessionRepository;
         this.reviewRepository = reviewRepository;
         this.auditLogRepository = auditLogRepository;
+        this.badgeRepository = badgeRepository;
+        this.badgeService = badgeService;
     }
 
     // ── Overview ──────────────────────────────────────────────────────────────
@@ -114,6 +123,85 @@ public class AdminController {
         if (!reviewRepository.existsById(id)) return ResponseEntity.notFound().build();
         reviewRepository.deleteById(id);
         return ResponseEntity.ok(Map.of("message", "Review deleted"));
+    }
+
+    // ── Badges ────────────────────────────────────────────────────────────────
+
+    @GetMapping("/badges")
+    public ResponseEntity<?> getAllBadges() {
+        return ResponseEntity.ok(badgeService.getAllBadgesForAdmin());
+    }
+
+    @PostMapping("/badges/create")
+    public ResponseEntity<?> createBadge(@RequestBody Map<String, Object> body) {
+        String name = (String) body.get("name");
+        String description = (String) body.get("description");
+        String iconName = (String) body.get("iconName");
+        String criteriaTypeStr = (String) body.get("criteriaType");
+        Object thresholdObj = body.get("thresholdValue");
+
+        if (name == null || name.isBlank() || description == null || description.isBlank()
+                || iconName == null || iconName.isBlank()
+                || criteriaTypeStr == null || thresholdObj == null) {
+            return ResponseEntity.badRequest().body(Map.of("error", "All fields are required"));
+        }
+
+        BadgeCriteriaType criteriaType;
+        try {
+            criteriaType = BadgeCriteriaType.valueOf(criteriaTypeStr);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Invalid criteriaType"));
+        }
+
+        int threshold;
+        try {
+            threshold = Integer.parseInt(thresholdObj.toString());
+            if (threshold < 1) throw new NumberFormatException();
+        } catch (NumberFormatException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", "thresholdValue must be a positive integer"));
+        }
+
+        Badge badge = new Badge(name.trim(), description.trim(), iconName.trim(), criteriaType, threshold);
+        badge.setPublished(false);
+        Badge saved = badgeRepository.save(badge);
+
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("id", saved.getId());
+        response.put("name", saved.getName());
+        response.put("message", "Badge created as draft");
+        return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/badges/{id}/publish")
+    public ResponseEntity<?> publishBadge(@PathVariable Long id) {
+        Badge badge = badgeRepository.findById(id).orElse(null);
+        if (badge == null) return ResponseEntity.notFound().build();
+        badge.setPublished(true);
+        badgeRepository.save(badge);
+        return ResponseEntity.ok(Map.of("message", "Badge published", "id", id));
+    }
+
+    @PutMapping("/badges/{id}/unpublish")
+    public ResponseEntity<?> unpublishBadge(@PathVariable Long id) {
+        Badge badge = badgeRepository.findById(id).orElse(null);
+        if (badge == null) return ResponseEntity.notFound().build();
+        badge.setPublished(false);
+        badgeRepository.save(badge);
+        return ResponseEntity.ok(Map.of("message", "Badge unpublished", "id", id));
+    }
+
+    @DeleteMapping("/badges/{id}")
+    public ResponseEntity<?> deleteBadge(@PathVariable Long id) {
+        Badge badge = badgeRepository.findById(id).orElse(null);
+        if (badge == null) return ResponseEntity.notFound().build();
+        long earned = badgeService.computeEarnedCount(badge);
+        if (earned > 0) {
+            return ResponseEntity.badRequest().body(Map.of(
+                "error", "Cannot delete: this badge has been earned by " + earned + " user(s)"
+            ));
+        }
+        badgeRepository.deleteById(id);
+        return ResponseEntity.ok(Map.of("message", "Badge deleted"));
     }
 
     // ── Audit Logs ────────────────────────────────────────────────────────────

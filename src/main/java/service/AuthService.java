@@ -1,6 +1,8 @@
 package service;
 
 import enums.Role;
+import exception.PasswordReuseException;
+import model.PasswordHistory;
 import model.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,12 +18,15 @@ import payload.JwtResponse;
 import dto.LoginRequest;
 import payload.MessageResponse;
 import dto.SignupRequest;
+import repository.PasswordHistoryRepository;
 import repository.UserRepository;
 import security.UserDetailsImpl;
 import security.jwt.JwtUtils;
+import validator.InputSanitizer;
 import jakarta.servlet.http.HttpServletRequest;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.Random;
 
@@ -37,6 +42,7 @@ public class AuthService {
 	private final AuditLogService auditLogService;
 	private final EmailService emailService;
 	private final OtpService otpService;
+	private final PasswordHistoryRepository passwordHistoryRepository;
 
 	public AuthService(AuthenticationManager authenticationManager,
 			JwtUtils jwtUtils,
@@ -44,7 +50,8 @@ public class AuthService {
 			PasswordEncoder passwordEncoder,
 			AuditLogService auditLogService,
 			EmailService emailService,
-			OtpService otpService) {
+			OtpService otpService,
+			PasswordHistoryRepository passwordHistoryRepository) {
 		this.authenticationManager = authenticationManager;
 		this.jwtUtils = jwtUtils;
 		this.userRepository = userRepository;
@@ -52,6 +59,7 @@ public class AuthService {
 		this.auditLogService = auditLogService;
 		this.emailService = emailService;
 		this.otpService = otpService;
+		this.passwordHistoryRepository = passwordHistoryRepository;
 	}
 
 	/**
@@ -141,16 +149,20 @@ public class AuthService {
 		// 3. Create new user (disabled until email verification)
 		User user = new User();
 		user.setEmail(email);
-		user.setPassword(passwordEncoder.encode(signupRequest.getPassword()));
-		user.setName(signupRequest.getName());
-		user.setLocation(signupRequest.getLocation());
+		String encodedPassword = passwordEncoder.encode(signupRequest.getPassword());
+		user.setPassword(encodedPassword);
+		user.setName(InputSanitizer.sanitize(signupRequest.getName()));
+		String loc = signupRequest.getLocation();
+		user.setLocation(loc != null ? InputSanitizer.sanitize(loc) : null);
 		user.setRole(role);
 		user.setEnabled(false);
 		user.setMfaEnabled(false);
-		user.setCredits(0);
+		user.setCredits(50);
 		user.setReputation(0);
 		// 4. Save to database
 		userRepository.save(user);
+		// 5. Record initial password in history
+		recordPasswordHistory(user, encodedPassword);
 		// 5. Generate OTP and send email
 		String otp = generateOtp();
 		otpService.saveOtp(email, otp);
@@ -248,8 +260,7 @@ public class AuthService {
 	    User user = userOpt.get();
 	    String resetCode = generateOtp();
 	    user.setResetCode(resetCode);
-	    // 🔥 Set expiry to 1 hour from now
-	    user.setResetCodeExpiry(LocalDateTime.now().plusHours(1));
+	    user.setResetCodeExpiry(LocalDateTime.now().plusMinutes(15));
 	    userRepository.save(user);
 
 	    emailService.sendOtpEmail(email, resetCode);
@@ -260,14 +271,13 @@ public class AuthService {
 	@Transactional
 	public MessageResponse resetPassword(String email, String resetCode, String newPassword, HttpServletRequest request) {
 	    User user = userRepository.findByEmail(email).orElse(null);
-	    // 🔥 Check expiry
 	    if (user == null || !resetCode.equals(user.getResetCode()) ||
 	            user.getResetCodeExpiry() == null ||
 	            user.getResetCodeExpiry().isBefore(LocalDateTime.now())) {
 	        auditLogService.logFailure(email, "PASSWORD_RESET_FAILED", request, "Invalid or expired reset code");
 	        throw new IllegalArgumentException("Invalid or expired reset code.");
 	    }
-
+	    validateAndStorePasswordHistory(user, newPassword);
 	    user.setPassword(passwordEncoder.encode(newPassword));
 	    user.setResetCode(null);
 	    user.setResetCodeExpiry(null);
@@ -309,6 +319,38 @@ public class AuthService {
 			auditLogService.logFailure(email, "OTP_VERIFICATION_FAILED", request, "Invalid OTP entered");
 		}
 		return valid;
+	}
+
+	/**
+	 * Checks that newRawPassword has not been used recently (current password + last 10 history),
+	 * then saves the new hash to password history. Call this BEFORE setting user.password.
+	 */
+	@Transactional
+	public void validateAndStorePasswordHistory(User user, String newRawPassword) {
+		if (passwordEncoder.matches(newRawPassword, user.getPassword())) {
+			throw new PasswordReuseException(
+					"You cannot reuse a recent password. Please choose a different one.");
+		}
+		List<PasswordHistory> history =
+				passwordHistoryRepository.findTop10ByUserOrderByCreatedAtDesc(user);
+		for (PasswordHistory h : history) {
+			if (passwordEncoder.matches(newRawPassword, h.getPasswordHash())) {
+				throw new PasswordReuseException(
+						"You cannot reuse a recent password. Please choose a different one.");
+			}
+		}
+		recordPasswordHistory(user, passwordEncoder.encode(newRawPassword));
+	}
+
+	/** Saves an already-encoded password to history and trims to 10 records. */
+	@Transactional
+	public void recordPasswordHistory(User user, String encodedPassword) {
+		passwordHistoryRepository.save(new PasswordHistory(user, encodedPassword));
+		List<PasswordHistory> all =
+				passwordHistoryRepository.findByUserOrderByCreatedAtAsc(user);
+		if (all.size() > 10) {
+			passwordHistoryRepository.deleteAll(all.subList(0, all.size() - 10));
+		}
 	}
 
 	// Helper method to generate a 6-digit OTP

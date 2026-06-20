@@ -8,6 +8,8 @@ package repository;
 import enums.Role;
 import model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -19,4 +21,12 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Boolean existsByEmail(String email);
     void deleteByEmail(String email);
     List<User> findByRoleAndEnabled(Role role, boolean enabled);
+
+    @Query("SELECT COUNT(DISTINCT u.id) FROM User u WHERE " +
+           "(SELECT COUNT(s) FROM Session s WHERE (s.mentor = u OR s.learner = u) AND s.status = 'COMPLETED') >= :n")
+    long countUsersWithMinCompletedSessions(@Param("n") long n);
+
+    @Query("SELECT COUNT(u) FROM User u WHERE " +
+           "COALESCE((SELECT AVG(r.rating) FROM Review r WHERE r.reviewee = u), 0) * 20 >= :n")
+    long countUsersWithMinReputation(@Param("n") int n);
 }

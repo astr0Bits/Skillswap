@@ -25,6 +25,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import validator.InputSanitizer;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -82,18 +84,21 @@ public class AuthController {
 		}
 
 		User user = new User();
-		user.setName(name);
+		user.setName(InputSanitizer.sanitize(name));
 		user.setEmail(email);
-		user.setPassword(encoder.encode(signupRequest.getPassword()));
-		user.setRole(signupRequest.getRole()); // e.g., LEARNER, SPONSOR
-		user.setEnabled(false); // require email verification
+		String encodedPwd = encoder.encode(signupRequest.getPassword());
+		user.setPassword(encodedPwd);
+		String loc = signupRequest.getLocation();
+		user.setLocation(loc != null ? InputSanitizer.sanitize(loc) : null);
+		user.setRole(signupRequest.getRole());
+		user.setEnabled(false);
 		user.setCredits(0);
 		user.setReputation(0);
-		// MFA fields default to false / null – they can be enabled later
 		user.setMfaEnabled(false);
 		user.setMfaSecret(null);
 
 		userRepository.save(user);
+		authService.recordPasswordHistory(user, encodedPwd);
 		auditLogService.logSuccess(email, "REGISTER", request, "User registered successfully");
 
 		String otp = generateOtp();
@@ -252,11 +257,12 @@ public class AuthController {
 		}
 
 		User user = userOpt.get();
-		String resetCode = generateOtp(); // 6-digit code
+		String resetCode = generateOtp();
 		user.setResetCode(resetCode);
+		user.setResetCodeExpiry(LocalDateTime.now().plusMinutes(15));
 		userRepository.save(user);
 
-		emailService.sendOtpEmail(email, resetCode); // reuse OTP email
+		emailService.sendOtpEmail(email, resetCode);
 		return ResponseEntity.ok(Map.of(MESSAGE, "Reset code sent to your email."));
 	}
 
@@ -267,12 +273,19 @@ public class AuthController {
 		String newPassword = payload.get("newPassword");
 
 		User user = userRepository.findByEmail(email).orElse(null);
-		if (user == null || !code.equals(user.getResetCode())) {
-			return ResponseEntity.badRequest().body(Map.of(MESSAGE, "Invalid email or reset code."));
+		if (user == null || !code.equals(user.getResetCode())
+				|| user.getResetCodeExpiry() == null
+				|| user.getResetCodeExpiry().isBefore(LocalDateTime.now())) {
+			return ResponseEntity.badRequest().body(
+					Map.of("error", "Reset code has expired. Please request a new one."));
 		}
+
+		// Throws PasswordReuseException (handled by GlobalExceptionHandler → 400)
+		authService.validateAndStorePasswordHistory(user, newPassword);
 
 		user.setPassword(encoder.encode(newPassword));
 		user.setResetCode(null);
+		user.setResetCodeExpiry(null);
 		userRepository.save(user);
 
 		return ResponseEntity.ok(Map.of(MESSAGE, "Password reset successful. You can now log in."));
@@ -384,7 +397,7 @@ public class AuthController {
 
 		// Update full name if provided
 		if (updateRequest.getName() != null && !updateRequest.getName().isBlank()) {
-			user.setName(updateRequest.getName());
+			user.setName(InputSanitizer.sanitize(updateRequest.getName()));
 		}
 
 		// Update email if provided and changed
@@ -397,11 +410,13 @@ public class AuthController {
 
 		// Update location if provided
 		if (updateRequest.getLocation() != null) {
-			user.setLocation(updateRequest.getLocation());
+			user.setLocation(InputSanitizer.sanitize(updateRequest.getLocation()));
 		}
 
 		// Update password if provided
 		if (updateRequest.getNewPassword() != null && !updateRequest.getNewPassword().isBlank()) {
+			// Throws PasswordReuseException (handled by GlobalExceptionHandler → 400)
+			authService.validateAndStorePasswordHistory(user, updateRequest.getNewPassword());
 			user.setPassword(encoder.encode(updateRequest.getNewPassword()));
 		}
 

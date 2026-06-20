@@ -603,7 +603,6 @@
         <div class="credits-banner">
             <div class="credits-left">
                 <h2><i class="fas fa-coins" style="font-size:1.6rem;margin-right:10px;opacity:0.9;"></i><span id="creditsBalance">0</span> Credits</h2>
-                <p>1 credit = 1 hour of learning &nbsp;·&nbsp; Earn by teaching</p>
             </div>
             <div class="credits-actions">
                 <button class="btn btn-white" id="creditUseBtn"><i class="fas fa-plus"></i> Use Credits</button>
@@ -621,10 +620,6 @@
         <!-- LEARNER VIEW -->
         <div id="viewLearner" class="dashboard-grid">
             <div>
-                <div id="pendingRequestsCard" class="card" style="display:none;">
-                    <div class="card-head"><h3><i class="fas fa-clock"></i> Pending Session Requests</h3></div>
-                    <div id="pendingRequestsContainer"></div>
-                </div>
                 <div class="card">
                     <div class="card-head"><h3><i class="fas fa-calendar-alt"></i> Upcoming & Scheduled Sessions</h3><a href="#" id="viewAllSessionsLink">View all</a></div>
                     <div id="upcomingSessionsContainer"></div>
@@ -649,7 +644,7 @@
             </div>
             <div>
                 <div class="card">
-                    <div class="card-head"><h3><i class="fas fa-medal"></i> Badges & Rewards</h3><a href="#">View all</a></div>
+                    <div class="card-head"><h3><i class="fas fa-medal"></i> Badges & Rewards</h3><a href="badges.html">View All Badges →</a></div>
                     <div class="badges-grid" id="badgesGrid"></div>
                     <div class="next-badge-hint" id="nextBadgeHint" style="display:none;"></div>
                 </div>
@@ -667,10 +662,6 @@
         <div id="viewMentor" style="display:none;">
             <div class="dashboard-grid">
                 <div>
-                    <div class="card">
-                        <div class="card-head"><h3><i class="fas fa-clock"></i> Pending Session Requests</h3><span id="pendingBadge" style="background:var(--rose);color:white;font-size:0.72rem;padding:2px 8px;border-radius:20px;"></span></div>
-                        <div id="pendingRequestsContainer2"></div>
-                    </div>
                     <div class="card">
                         <div class="card-head"><h3><i class="fas fa-calendar-alt"></i> My Upcoming Sessions</h3></div>
                         <div id="mentorUpcomingContainer"></div>
@@ -739,7 +730,7 @@
                         <div id="earningsBarsContainer"></div>
                     </div>
                     <div class="card">
-                        <div class="card-head"><h3><i class="fas fa-medal"></i> My Badges</h3></div>
+                        <div class="card-head"><h3><i class="fas fa-medal"></i> My Badges</h3><a href="badges.html">View All Badges →</a></div>
                         <div class="badges-grid" id="mentorBadgesGrid"></div>
                     </div>
                 </div>
@@ -780,7 +771,6 @@
     let userProfile = { name: '', email: '', role: '', credits: 0 };
     let userStats = { points: 0, totalSessions: 0, upcomingSessions: 0, reputation: 0, credits: 0 };
     let upcomingSessions = [];
-    let pendingSessions = [];
     let sessionHistory = [];
     let userSkills = { teach: [], learn: [] };
     let reviews = [];
@@ -820,13 +810,6 @@
             userSkills = skills || { teach: [], learn: [] };
             reviews = revs || [];
             recommendations = recs || [];
-
-            if (userSkills.teach && userSkills.teach.length > 0) {
-                try { pendingSessions = await apiRequest('/sessions/mentor/pending'); } catch(e) { pendingSessions = []; }
-                document.getElementById('pendingRequestsCard').style.display = 'block';
-            } else {
-                document.getElementById('pendingRequestsCard').style.display = 'none';
-            }
 
             try { sessionHistory = await apiRequest('/sessions/me/history'); } catch(e) { sessionHistory = []; }
             try { mentorCreatedSessions = await apiRequest('/public-sessions/my-sessions'); } catch(e) { mentorCreatedSessions = []; }
@@ -882,12 +865,11 @@
 
         const rating = ((userStats.reputation || 0) / 20).toFixed(1);
         document.getElementById('statsBar').innerHTML = `
-            <div class="stat-card"><div class="stat-icon si-indigo"><i class="fas fa-coins"></i></div><div class="stat-info"><h4>${userStats.points || 0}</h4><p>Points Balance</p></div></div>
+            <div class="stat-card"><div class="stat-icon si-indigo"><i class="fas fa-coins"></i></div><div class="stat-info"><h4>${credits}</h4><p>Credits</p></div></div>
             <div class="stat-card"><div class="stat-icon si-green"><i class="fas fa-calendar-check"></i></div><div class="stat-info"><h4>${userStats.upcomingSessions || 0}</h4><p>Upcoming Sessions</p></div></div>
             <div class="stat-card"><div class="stat-icon si-amber"><i class="fas fa-star"></i></div><div class="stat-info"><h4>${rating}</h4><p>Reputation Score</p></div></div>
             <div class="stat-card"><div class="stat-icon si-purple"><i class="fas fa-tools"></i></div><div class="stat-info"><h4>${(userSkills.teach?.length || 0) + (userSkills.learn?.length || 0)}</h4><p>Skills Showcased</p></div></div>`;
 
-        renderPendingSessions('pendingRequestsContainer', pendingSessions);
         renderUpcomingSessions();
         renderSkillsShowcase();
         renderSessionHistory();
@@ -895,23 +877,6 @@
         renderRecommendations();
         renderReviews();
         renderMentorView();
-    }
-
-    function renderPendingSessions(containerId, sessions) {
-        const el = document.getElementById(containerId);
-        if (!el) return;
-        if (!sessions || sessions.length === 0) {
-            el.innerHTML = '<div style="padding:16px;text-align:center;color:var(--muted);">No pending requests.</div>';
-            return;
-        }
-        el.innerHTML = sessions.map(s => `
-            <div class="session-item">
-                <div class="session-row"><span class="session-title">${s.skillName || ''}</span><span class="session-date">${new Date(s.scheduledTime).toLocaleString()}</span></div>
-                <div class="session-meta"><span class="meta-item"><i class="fas fa-user"></i> ${s.learnerName || ''}</span><span class="meta-item"><i class="fas fa-clock"></i> ${s.durationMinutes} min</span><span class="meta-item"><i class="fas ${s.mode === 'ONLINE' ? 'fa-video' : 'fa-map-marker-alt'}"></i> ${s.mode === 'ONLINE' ? 'Online' : 'In-person'}</span></div>
-                <div class="session-actions"><button class="btn btn-green accept-session" data-id="${s.id}">Accept</button><button class="btn btn-danger reject-session" data-id="${s.id}">Reject</button></div>
-            </div>`).join('');
-        el.querySelectorAll('.accept-session').forEach(btn => btn.addEventListener('click', () => acceptSession(btn.dataset.id)));
-        el.querySelectorAll('.reject-session').forEach(btn => btn.addEventListener('click', () => rejectSession(btn.dataset.id)));
     }
 
     function renderUpcomingSessions() {
@@ -1048,9 +1013,6 @@
     }
 
     function renderMentorView() {
-        renderPendingSessions('pendingRequestsContainer2', pendingSessions);
-        const badgeSpan = document.getElementById('pendingBadge');
-        if (badgeSpan) badgeSpan.innerText = pendingSessions.length || '';
         const muEl = document.getElementById('mentorUpcomingContainer');
         if (!upcomingSessions.length) {
             muEl.innerHTML = '<p style="color:var(--muted);text-align:center;padding:16px;">No upcoming sessions.</p>';

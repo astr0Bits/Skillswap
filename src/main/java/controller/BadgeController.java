@@ -1,4 +1,3 @@
-// controller/BadgeController.java
 package controller;
 
 import dto.BadgeDTO;
@@ -13,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/badges/me")
+@RequestMapping("/api/badges")
 public class BadgeController {
     private final UserStatsService statsService;
     private final BadgeService badgeService;
@@ -25,12 +24,26 @@ public class BadgeController {
         this.userRepository = userRepository;
     }
 
-    @GetMapping
+    /** Legacy endpoint — used by dashboard and userProfile. */
+    @GetMapping("/me")
     public ResponseEntity<List<BadgeDTO>> getBadges(Authentication auth) {
         User user = getUser(auth);
         UserStatsDTO stats = statsService.getUserStats(user);
         List<BadgeDTO> badges = badgeService.getUserBadges(user, stats.getPoints(), stats.getTotalSessions(), stats.getReputation());
         return ResponseEntity.ok(badges);
+    }
+
+    /** All published badge definitions (no personal data). */
+    @GetMapping("/all")
+    public ResponseEntity<List<BadgeDTO>> getAllBadges() {
+        return ResponseEntity.ok(badgeService.getAllPublishedBadges());
+    }
+
+    /** Current user's progress on every published badge. */
+    @GetMapping("/me/progress")
+    public ResponseEntity<List<BadgeDTO>> getBadgeProgress(Authentication auth) {
+        User user = getUser(auth);
+        return ResponseEntity.ok(badgeService.getBadgeProgress(user));
     }
 
     private User getUser(Authentication auth) {

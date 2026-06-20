@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import repository.*;
 import service.SessionEmailService;
 
+import validator.InputSanitizer;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -69,8 +70,10 @@ public class PublicSessionController {
         session.setSkill(skill);
         session.setMode(SessionMode.valueOf(dto.getMode().toUpperCase()));  session.setMeetingLink(dto.getMeetingLink());
         session.setLocation(dto.getLocation());
-        session.setDescription(dto.getDescription());
-        session.setToolsNeeded(dto.getToolsNeeded());
+        String desc = dto.getDescription();
+        session.setDescription(desc != null ? InputSanitizer.sanitize(desc) : null);
+        String tools = dto.getToolsNeeded();
+        session.setToolsNeeded(tools != null ? InputSanitizer.sanitize(tools) : null);
         session.setDurationMinutes(dto.getDurationMinutes() > 0 ? dto.getDurationMinutes() : 60);
         session.setMaxLearners(dto.getMaxLearners() > 0 ? dto.getMaxLearners() : 1);
         session.setCurrentLearners(0);

@@ -15,8 +15,10 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import repository.*;
 import security.UserDetailsImpl;
+import service.AiSummaryService;
 import service.SessionEmailService;
-
+import org.springframework.transaction.annotation.Transactional;
+import validator.InputSanitizer;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.LinkedHashMap;
@@ -33,17 +35,20 @@ public class SessionBookingController {
     private final SkillRepository skillRepository;
     private final MentorAvailabilityRepository availabilityRepository;
     private final SessionEmailService emailService;
+    private final AiSummaryService aiSummaryService;
 
     public SessionBookingController(UserRepository userRepository,
                                     SessionRepository sessionRepository,
                                     SkillRepository skillRepository,
                                     MentorAvailabilityRepository availabilityRepository,
-                                    SessionEmailService emailService) {
+                                    SessionEmailService emailService,
+                                    AiSummaryService aiSummaryService) {
         this.userRepository = userRepository;
         this.sessionRepository = sessionRepository;
         this.skillRepository = skillRepository;
         this.availabilityRepository = availabilityRepository;
         this.emailService = emailService;
+        this.aiSummaryService = aiSummaryService;
     }
 
     // ── Mentor: create a session ──────────────────────────────────────────────
@@ -119,8 +124,10 @@ public class SessionBookingController {
         session.setDurationMinutes(duration);
         session.setMaxLearners(maxLearners);
         session.setCurrentLearners(0);
-        session.setDescription(dto.getDescription());
-        session.setToolsNeeded(dto.getToolsNeeded());
+        String desc = dto.getDescription();
+        session.setDescription(desc != null ? InputSanitizer.sanitize(desc) : null);
+        String tools = dto.getToolsNeeded();
+        session.setToolsNeeded(tools != null ? InputSanitizer.sanitize(tools) : null);
 
         if ("ONLINE".equalsIgnoreCase(mode)) {
             session.setMeetingLink(dto.getMeetingLink());
@@ -311,7 +318,52 @@ public class SessionBookingController {
         m.put("maxLearners", s.getMaxLearners());
         m.put("currentLearners", s.getCurrentLearners());
         m.put("description", s.getDescription() != null ? s.getDescription() : "");
+        m.put("aiSummary", s.getAiSummary() != null ? s.getAiSummary() : "");
         return m;
+    }
+
+    // ── Mentor: mark session complete + trigger AI summary ────────────────────
+
+    @PutMapping("/{sessionId}/complete")
+    @Transactional
+    public ResponseEntity<?> completeSession(@PathVariable Long sessionId, Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(401).body(Map.of("error", "Not authenticated"));
+        }
+        UserDetailsImpl principal = (UserDetailsImpl) authentication.getPrincipal();
+        User user = userRepository.findById(principal.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        Session session = sessionRepository.findById(sessionId).orElse(null);
+        if (session == null) return ResponseEntity.notFound().build();
+
+        if (!session.getMentor().getId().equals(user.getId())) {
+            return ResponseEntity.status(403).body(Map.of("error", "Only the session mentor can mark it complete"));
+        }
+        if (session.getStatus() == SessionStatus.COMPLETED) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Session is already marked complete"));
+        }
+        if (session.getStatus() == SessionStatus.CANCELLED) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Cannot complete a cancelled session"));
+        }
+
+        String skillName   = session.getSkill()    != null ? session.getSkill().getName()    : "General";
+        int    duration    = session.getDurationMinutes() != null ? session.getDurationMinutes() : 60;
+        String learnerName = session.getLearner()  != null ? session.getLearner().getName()  : "Learner";
+        String mentorName  = session.getMentor().getName();
+
+        String summary;
+        try {
+            summary = aiSummaryService.generateSummary(skillName, duration, learnerName, mentorName);
+        } catch (Exception e) {
+            summary = "Summary unavailable — please check back later.";
+        }
+
+        session.setStatus(SessionStatus.COMPLETED);
+        session.setAiSummary(summary);
+        sessionRepository.save(session);
+
+        return ResponseEntity.ok(toSessionDTO(session));
     }
 
     // ── Availability helpers ───────────────────────────────────────────────────

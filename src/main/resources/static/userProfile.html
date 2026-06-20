@@ -1102,24 +1102,60 @@ async function removeSkill(userSkillId) {
 // ═══════════════════════════════════════════════════════════════
 // REVIEWS
 // ═══════════════════════════════════════════════════════════════
+function relativeDate(dateStr) {
+    if (!dateStr) return '';
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1)   return 'just now';
+    if (mins < 60)  return `${mins}m ago`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    if (days < 30)  return `${days}d ago`;
+    const months = Math.floor(days / 30);
+    if (months < 12) return `${months}mo ago`;
+    return `${Math.floor(months / 12)}y ago`;
+}
+
+function starDisplay(rating) {
+    return '★'.repeat(rating) + '☆'.repeat(5 - rating);
+}
+
 async function loadReviews() {
     try {
         const reviews = await apiRequest('/reviews/me');
         const el = document.getElementById('reviewsList');
         if (!reviews || !reviews.length) {
-            el.innerHTML = '<p style="font-size:13px; color:var(--muted); text-align:center; padding:12px 0;">No reviews yet.</p>';
+            el.innerHTML = `<div style="text-align:center;padding:20px 0;">
+                <div style="font-size:32px;margin-bottom:8px;">⭐</div>
+                <p style="font-size:13px;color:var(--muted);">No reviews yet — be the first to book a session!</p>
+            </div>`;
             return;
         }
-        el.innerHTML = reviews.slice(0, 5).map(r => `
+        const total = reviews.length;
+        const avg   = (reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / total).toFixed(1);
+        const header = `
+            <div style="display:flex;align-items:center;gap:14px;padding:12px 14px;
+                        background:var(--amber-light);border-radius:10px;margin-bottom:14px;">
+                <div style="font-size:28px;font-weight:700;font-family:'Fraunces',serif;color:#b45309;">${avg}</div>
+                <div>
+                    <div style="color:#f59e0b;font-size:18px;letter-spacing:2px;">${'★'.repeat(Math.round(avg))}${'☆'.repeat(5-Math.round(avg))}</div>
+                    <div style="font-size:12px;color:#b45309;">${total} review${total !== 1 ? 's' : ''}</div>
+                </div>
+            </div>`;
+        el.innerHTML = header + reviews.map(r => `
             <div class="review-item">
                 <div class="review-top">
                     <div class="reviewer">
                         <div class="reviewer-avatar">${(r.reviewerName?.[0] || 'U').toUpperCase()}</div>
-                        <span class="reviewer-name">${escapeHtml(r.reviewerName || 'Anonymous')}</span>
+                        <div>
+                            <span class="reviewer-name">${escapeHtml(r.reviewerName || 'Anonymous')}</span>
+                            <div style="font-size:11px;color:var(--muted);">${relativeDate(r.createdAt)}</div>
+                        </div>
                     </div>
-                    <div class="stars">★ ${r.rating || '?'}</div>
+                    <div class="stars" style="font-size:14px;letter-spacing:1px;">${starDisplay(r.rating || 0)}</div>
                 </div>
-                <p class="review-text">${escapeHtml(r.comment || '')}</p>
+                ${r.comment ? `<p class="review-text">${escapeHtml(r.comment)}</p>` : ''}
             </div>`).join('');
     } catch (e) {
         console.error('loadReviews:', e);

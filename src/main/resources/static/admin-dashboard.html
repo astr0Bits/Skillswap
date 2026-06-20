@@ -210,6 +210,9 @@
     <div class="nav-link" id="nav-reviews" onclick="showSection('reviews')">
       <span class="nav-icon">⭐</span> Reviews
     </div>
+    <div class="nav-link" id="nav-badges" onclick="showSection('badges')">
+      <span class="nav-icon">🏅</span> Badges
+    </div>
     <div class="nav-link" id="nav-audit-logs" onclick="showSection('audit-logs')">
       <span class="nav-icon">📋</span> Audit Logs
     </div>
@@ -382,6 +385,74 @@
       </div>
     </div>
   </div>
+
+  <!-- Badges -->
+  <div id="section-badges" class="section">
+    <div class="page-header">
+      <h1>Badge Management</h1>
+      <p>Create, publish, and manage platform achievement badges</p>
+    </div>
+
+    <!-- Create form -->
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-head"><h2>Create New Badge</h2></div>
+      <div style="padding:18px;display:grid;grid-template-columns:repeat(3,1fr);gap:14px">
+        <div>
+          <label style="font-size:0.8rem;font-weight:600;color:var(--gray-700);display:block;margin-bottom:4px">Name *</label>
+          <input type="text" id="badge-form-name" placeholder="e.g. Speed Learner"
+                 style="width:100%;border:1px solid var(--gray-300);border-radius:7px;padding:7px 10px;font-size:0.83rem;font-family:inherit;outline:none">
+        </div>
+        <div>
+          <label style="font-size:0.8rem;font-weight:600;color:var(--gray-700);display:block;margin-bottom:4px">Icon (emoji) *</label>
+          <input type="text" id="badge-form-icon" placeholder="🎯" maxlength="4"
+                 style="width:100%;border:1px solid var(--gray-300);border-radius:7px;padding:7px 10px;font-size:0.83rem;font-family:inherit;outline:none">
+        </div>
+        <div>
+          <label style="font-size:0.8rem;font-weight:600;color:var(--gray-700);display:block;margin-bottom:4px">Criteria Type *</label>
+          <select id="badge-form-criteria"
+                  style="width:100%;border:1px solid var(--gray-300);border-radius:7px;padding:7px 10px;font-size:0.83rem;font-family:inherit;outline:none">
+            <option value="SESSION_COUNT">Session Count</option>
+            <option value="RATING_THRESHOLD">Reputation Score (0–100)</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:0.8rem;font-weight:600;color:var(--gray-700);display:block;margin-bottom:4px">Threshold *</label>
+          <input type="number" id="badge-form-threshold" min="1" placeholder="5"
+                 style="width:100%;border:1px solid var(--gray-300);border-radius:7px;padding:7px 10px;font-size:0.83rem;font-family:inherit;outline:none">
+        </div>
+        <div style="grid-column:span 2">
+          <label style="font-size:0.8rem;font-weight:600;color:var(--gray-700);display:block;margin-bottom:4px">Description *</label>
+          <input type="text" id="badge-form-desc" placeholder="e.g. Complete 5 sessions"
+                 style="width:100%;border:1px solid var(--gray-300);border-radius:7px;padding:7px 10px;font-size:0.83rem;font-family:inherit;outline:none">
+        </div>
+      </div>
+      <div style="padding:0 18px 18px;display:flex;align-items:center;gap:12px">
+        <button class="btn btn-success" onclick="createBadge()">+ Create Badge (Draft)</button>
+        <span id="badge-form-msg" style="font-size:0.82rem"></span>
+      </div>
+    </div>
+
+    <!-- Badges table -->
+    <div class="card">
+      <div class="card-head">
+        <h2>All Badges</h2>
+        <button class="btn btn-ghost" onclick="loadBadges()">↻ Refresh</button>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th><th>Icon</th><th>Name</th><th>Description</th>
+              <th>Criteria</th><th>Threshold</th><th>Status</th><th>Earned By</th><th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="badges-tbody">
+            <tr class="empty-row"><td colspan="9">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 </main>
 
 <!-- ── Confirm modal ──────────────────────────────────────────────────────── -->
@@ -462,7 +533,7 @@ function pgInfo(elId, page, filtered) {
 }
 
 // ── Navigation ───────────────────────────────────────────────────────────────
-const SECTIONS = ['overview','users','sessions','reviews','audit-logs'];
+const SECTIONS = ['overview','users','sessions','reviews','badges','audit-logs'];
 const _loaded = {};
 
 function showSection(id) {
@@ -475,6 +546,7 @@ function showSection(id) {
     else if (id === 'users')      loadUsers();
     else if (id === 'sessions')   loadSessions();
     else if (id === 'reviews')    loadReviews();
+    else if (id === 'badges')     loadBadges();
     else if (id === 'audit-logs') loadAuditLogs();
   }
 }
@@ -827,6 +899,129 @@ function renderLogs() {
 }
 
 function logPg(d) { _logPg += d; renderLogs(); }
+
+// ── Badges ────────────────────────────────────────────────────────────────────
+let _badges = [];
+
+async function loadBadges() {
+  _loaded['badges'] = false;
+  document.getElementById('badges-tbody').innerHTML = '<tr class="empty-row"><td colspan="9">Loading…</td></tr>';
+  try {
+    const res = await authFetch('/api/admin/badges');
+    if (!res.ok) { showErr('Failed to load badges'); return; }
+    _badges = await res.json();
+    renderBadgesTable();
+    _loaded['badges'] = true;
+  } catch (err) {
+    if (err.message !== '401' && err.message !== '403') showErr('Error loading badges: ' + err.message);
+  }
+}
+
+function renderBadgesTable() {
+  const tbody = document.getElementById('badges-tbody');
+  if (!_badges.length) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="9">No badges found</td></tr>';
+    return;
+  }
+  tbody.innerHTML = _badges.map(b => `
+    <tr>
+      <td>${b.id}</td>
+      <td style="font-size:1.4rem;line-height:1">${esc(b.icon)}</td>
+      <td><strong>${esc(b.name)}</strong></td>
+      <td style="max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"
+          title="${esc(b.description)}">${esc(b.description)}</td>
+      <td><span class="badge ${b.criteriaType === 'SESSION_COUNT' ? 'bg-info' : 'bg-purple'}">
+        ${b.criteriaType === 'SESSION_COUNT' ? 'Sessions' : 'Reputation'}
+      </span></td>
+      <td>${b.thresholdValue}</td>
+      <td><span class="badge ${b.published ? 'bg-success' : 'bg-gray'}">${b.published ? 'Published' : 'Draft'}</span></td>
+      <td>${b.earnedCount}</td>
+      <td style="white-space:nowrap;display:flex;gap:6px">
+        ${b.published
+          ? `<button class="btn btn-warning" onclick="unpublishBadge(${b.id})">Unpublish</button>`
+          : `<button class="btn btn-success" onclick="publishBadge(${b.id})">Publish</button>`}
+        <button class="btn btn-danger" onclick="deleteBadge(${b.id}, ${b.earnedCount})">Delete</button>
+      </td>
+    </tr>`).join('');
+}
+
+async function createBadge() {
+  const name = document.getElementById('badge-form-name').value.trim();
+  const icon = document.getElementById('badge-form-icon').value.trim();
+  const criteriaType = document.getElementById('badge-form-criteria').value;
+  const threshold = parseInt(document.getElementById('badge-form-threshold').value, 10);
+  const description = document.getElementById('badge-form-desc').value.trim();
+  const msgEl = document.getElementById('badge-form-msg');
+
+  if (!name || !icon || !description || !threshold || threshold < 1) {
+    msgEl.style.color = '#991b1b';
+    msgEl.textContent = 'All fields are required and threshold must be ≥ 1.';
+    return;
+  }
+
+  try {
+    const res = await authFetch('/api/admin/badges/create', {
+      method: 'POST',
+      body: JSON.stringify({ name, iconName: icon, criteriaType, thresholdValue: threshold, description })
+    });
+    const data = await res.json();
+    if (!res.ok) { msgEl.style.color = '#991b1b'; msgEl.textContent = data.error || 'Create failed'; return; }
+    msgEl.style.color = '#065f46';
+    msgEl.textContent = '✓ Badge "' + name + '" created as draft';
+    ['badge-form-name','badge-form-icon','badge-form-threshold','badge-form-desc']
+      .forEach(id => { document.getElementById(id).value = ''; });
+    loadBadges();
+    setTimeout(() => { msgEl.textContent = ''; }, 5000);
+  } catch (err) {
+    if (err.message !== '401' && err.message !== '403') showErr('Create failed: ' + err.message);
+  }
+}
+
+async function publishBadge(id) {
+  try {
+    const res = await authFetch(`/api/admin/badges/${id}/publish`, { method: 'PUT' });
+    if (!res.ok) { const d = await res.json(); showErr(d.error || 'Publish failed'); return; }
+    const idx = _badges.findIndex(b => b.id === id);
+    if (idx !== -1) _badges[idx].published = true;
+    renderBadgesTable();
+    showToast('✓ Badge published');
+  } catch (err) {
+    if (err.message !== '401' && err.message !== '403') showErr('Error: ' + err.message);
+  }
+}
+
+async function unpublishBadge(id) {
+  try {
+    const res = await authFetch(`/api/admin/badges/${id}/unpublish`, { method: 'PUT' });
+    if (!res.ok) { const d = await res.json(); showErr(d.error || 'Unpublish failed'); return; }
+    const idx = _badges.findIndex(b => b.id === id);
+    if (idx !== -1) _badges[idx].published = false;
+    renderBadgesTable();
+    showToast('✓ Badge unpublished');
+  } catch (err) {
+    if (err.message !== '401' && err.message !== '403') showErr('Error: ' + err.message);
+  }
+}
+
+function deleteBadge(id, earnedCount) {
+  if (earnedCount > 0) {
+    showErr('Cannot delete: this badge has been earned by ' + earnedCount + ' user(s).');
+    return;
+  }
+  openConfirm('Delete Badge',
+    'Permanently delete badge #' + id + '? This cannot be undone.',
+    async () => {
+      try {
+        const res = await authFetch(`/api/admin/badges/${id}`, { method: 'DELETE' });
+        if (!res.ok) { const d = await res.json(); showErr(d.error || 'Delete failed'); return; }
+        _badges = _badges.filter(b => b.id !== id);
+        renderBadgesTable();
+        showToast('✓ Badge deleted');
+      } catch (err) {
+        if (err.message !== '401' && err.message !== '403') showErr('Error: ' + err.message);
+      }
+    });
+}
 
 // ── Logout ────────────────────────────────────────────────────────────────────
 function logout() {

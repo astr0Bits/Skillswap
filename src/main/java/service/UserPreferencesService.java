@@ -5,6 +5,7 @@ import dto.UserPreferencesDTO;
 import model.User;
 import model.UserPreferences;
 import repository.UserPreferencesRepository;
+import validator.InputSanitizer;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,9 +31,11 @@ public class UserPreferencesService {
                     newPrefs.setUser(user);
                     return newPrefs;
                 });
-        prefs.setLearningGoals(dto.getLearningGoals());
+        String goals = dto.getLearningGoals();
+        prefs.setLearningGoals(goals != null ? InputSanitizer.sanitize(goals) : null);
         prefs.setWeeklyHours(dto.getWeeklyHours());
-        prefs.setPreferredMode(dto.getPreferredMode());
+        String mode = dto.getPreferredMode();
+        prefs.setPreferredMode(mode != null ? InputSanitizer.sanitize(mode) : null);
         prefs.setNotificationsEnabled(dto.getNotificationsEnabled());
         repository.save(prefs);
         return toDTO(prefs);

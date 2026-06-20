@@ -1,7 +1,10 @@
 // dto/UserPreferencesDTO.java
 package dto;
 
+import validator.NoHtml;
+
 public class UserPreferencesDTO {
+    @NoHtml
     private String learningGoals;
     private Integer weeklyHours;
     private String preferredMode;

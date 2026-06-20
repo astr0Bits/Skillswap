@@ -5,6 +5,7 @@ import dto.UserPreferencesDTO;
 import model.User;
 import repository.UserRepository;
 import service.UserPreferencesService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -27,7 +28,7 @@ public class UserPreferencesController {
     }
 
     @PutMapping
-    public ResponseEntity<UserPreferencesDTO> updatePreferences(@RequestBody UserPreferencesDTO dto, Authentication auth) {
+    public ResponseEntity<UserPreferencesDTO> updatePreferences(@Valid @RequestBody UserPreferencesDTO dto, Authentication auth) {
         User user = getUser(auth);
         return ResponseEntity.ok(service.updatePreferences(user, dto));
     }

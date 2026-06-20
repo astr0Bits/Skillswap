@@ -63,14 +63,12 @@ public class SecurityConfig {
 				.sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.authorizeHttpRequests(auth -> auth
 						.requestMatchers(
-							    "/", "/error", "/favicon.ico",
-							    "/index.html", "/login.html", "/register.html", "/forgot.html", "/otp_verify.html",
-							    "/forgot-password.html", "/verify-otp.html",
-							    "/dashboard.html", "/userProfile.html", "/chat.html", "/ai-matching.html", 
-							    "/browse-skills.html", "/sessions.html", 
-							    "/learner.html", "/sponsor.html", "/admin-dashboard.html",
-							    "/js/**", "/images/**", "/static/**", "/webjars/**",
+							    // All static HTML pages — auth enforced client-side via JWT in localStorage
+							    "/*.html", "/", "/error", "/favicon.ico",
+							    // Static assets
+							    "/js/**", "/css/**", "/images/**", "/static/**", "/webjars/**",
 							    "/uploads/**", "/default-logo.png",
+							    // Public API endpoints
 							    "/api/auth/**",
 							    "/api/reviews/**",
 							    "/api/categories/**",
