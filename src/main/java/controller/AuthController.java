@@ -92,7 +92,7 @@ public class AuthController {
 		user.setLocation(loc != null ? InputSanitizer.sanitize(loc) : null);
 		user.setRole(signupRequest.getRole());
 		user.setEnabled(false);
-		user.setCredits(0);
+		user.setCredits(50);
 		user.setReputation(0);
 		user.setMfaEnabled(false);
 		user.setMfaSecret(null);
