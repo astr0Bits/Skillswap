@@ -4,6 +4,7 @@ import dto.BadgeDTO;
 import enums.BadgeCriteriaType;
 import model.Badge;
 import model.User;
+import model.UserBadge;
 import repository.BadgeRepository;
 import repository.ReviewRepository;
 import repository.SessionRepository;
@@ -13,6 +14,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -52,10 +54,30 @@ public class BadgeService {
         Double avgRating = reviewRepository.findAverageRatingByReviewee(user);
         int reputation = avgRating == null ? 0 : (int) Math.round(avgRating * 20);
 
-        return badgeRepository.findByPublishedTrueOrderByThresholdValueAsc()
-                .stream()
-                .map(b -> toProgressDTO(b, completedSessions, reputation, user))
-                .collect(Collectors.toList());
+        List<BadgeDTO> result = new ArrayList<>(
+                badgeRepository.findByPublishedTrueOrderByThresholdValueAsc()
+                        .stream()
+                        .map(b -> toProgressDTO(b, completedSessions, reputation, user))
+                        .collect(Collectors.toList()));
+
+        // Also include CUSTOM assessment badges earned by this user even if unpublished
+        Set<Long> alreadyIncluded = result.stream()
+                .filter(b -> b.getId() != null)
+                .map(BadgeDTO::getId)
+                .collect(Collectors.toSet());
+
+        for (UserBadge ub : userBadgeRepository.findByUser(user)) {
+            Badge b = ub.getBadge();
+            if (b.getCriteriaType() == BadgeCriteriaType.CUSTOM && !alreadyIncluded.contains(b.getId())) {
+                BadgeDTO dto = toDefinitionDTO(b);
+                dto.setEarned(true);
+                dto.setProgress("Earned");
+                dto.setProgressPercent(100);
+                result.add(dto);
+            }
+        }
+
+        return result;
     }
 
     // ── Admin: all badges (including unpublished) with earned counts ──────────
