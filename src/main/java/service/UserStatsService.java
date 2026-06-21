@@ -31,7 +31,7 @@ public class UserStatsService {
         int points = (int)(totalSessions * 10 + reputation);
         
         UserStatsDTO dto = new UserStatsDTO();
-        dto.setCredits(user.getCredits());
+        dto.setCredits(user.getCredits() != null ? user.getCredits() : 0);
         dto.setReputation(reputation);
         dto.setPoints(points);
         dto.setTotalSessions(totalSessions);

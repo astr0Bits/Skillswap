@@ -7,6 +7,7 @@ import model.User;
 import repository.BadgeRepository;
 import repository.ReviewRepository;
 import repository.SessionRepository;
+import repository.UserBadgeRepository;
 import repository.UserRepository;
 import org.springframework.stereotype.Service;
 
@@ -21,15 +22,18 @@ public class BadgeService {
     private final SessionRepository sessionRepository;
     private final ReviewRepository reviewRepository;
     private final UserRepository userRepository;
+    private final UserBadgeRepository userBadgeRepository;
 
     public BadgeService(BadgeRepository badgeRepository,
                         SessionRepository sessionRepository,
                         ReviewRepository reviewRepository,
-                        UserRepository userRepository) {
+                        UserRepository userRepository,
+                        UserBadgeRepository userBadgeRepository) {
         this.badgeRepository = badgeRepository;
         this.sessionRepository = sessionRepository;
         this.reviewRepository = reviewRepository;
         this.userRepository = userRepository;
+        this.userBadgeRepository = userBadgeRepository;
     }
 
     // ── Public: all published badge definitions ──────────────────────────────
@@ -50,7 +54,7 @@ public class BadgeService {
 
         return badgeRepository.findByPublishedTrueOrderByThresholdValueAsc()
                 .stream()
-                .map(b -> toProgressDTO(b, completedSessions, reputation))
+                .map(b -> toProgressDTO(b, completedSessions, reputation, user))
                 .collect(Collectors.toList());
     }
 
@@ -72,7 +76,10 @@ public class BadgeService {
         if (badge.getCriteriaType() == BadgeCriteriaType.SESSION_COUNT) {
             return userRepository.countUsersWithMinCompletedSessions(badge.getThresholdValue());
         }
-        return userRepository.countUsersWithMinReputation(badge.getThresholdValue());
+        if (badge.getCriteriaType() == BadgeCriteriaType.RATING_THRESHOLD) {
+            return userRepository.countUsersWithMinReputation(badge.getThresholdValue());
+        }
+        return 0; // CUSTOM badges — count is not applicable
     }
 
     // ── Legacy: for /api/badges/me and /api/users/me/badges ─────────────────
@@ -87,7 +94,7 @@ public class BadgeService {
             return legacyHardcodedBadges(points, sessions, rep);
         }
         return badges.stream()
-                .map(b -> toProgressDTO(b, sessions, rep))
+                .map(b -> toProgressDTO(b, sessions, rep, user))
                 .collect(Collectors.toList());
     }
 
@@ -117,7 +124,15 @@ public class BadgeService {
         return dto;
     }
 
-    private BadgeDTO toProgressDTO(Badge b, long completedSessions, int reputation) {
+    private BadgeDTO toProgressDTO(Badge b, long completedSessions, int reputation, User user) {
+        if (b.getCriteriaType() == BadgeCriteriaType.CUSTOM) {
+            BadgeDTO dto = toDefinitionDTO(b);
+            boolean earned = userBadgeRepository.existsByUserAndBadge(user, b);
+            dto.setEarned(earned);
+            dto.setProgress(earned ? "Earned" : "Not yet earned");
+            dto.setProgressPercent(earned ? 100 : 0);
+            return dto;
+        }
         BadgeDTO dto = toDefinitionDTO(b);
         int threshold = b.getThresholdValue();
         int current = b.getCriteriaType() == BadgeCriteriaType.SESSION_COUNT

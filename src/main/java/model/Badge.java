@@ -22,7 +22,7 @@ public class Badge {
     private String iconName;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "VARCHAR(30)")
     private BadgeCriteriaType criteriaType;
 
     @Column(nullable = false)

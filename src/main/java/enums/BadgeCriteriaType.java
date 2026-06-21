@@ -2,5 +2,6 @@ package enums;
 
 public enum BadgeCriteriaType {
     SESSION_COUNT,
-    RATING_THRESHOLD
+    RATING_THRESHOLD,
+    CUSTOM
 }

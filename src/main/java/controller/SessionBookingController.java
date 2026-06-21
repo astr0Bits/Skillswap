@@ -6,6 +6,7 @@ import enums.SessionMode;
 import enums.SessionStatus;
 import exception.AvailabilityException;
 import exception.ResourceNotFoundException;
+import model.CreditTransaction;
 import model.MentorAvailability;
 import model.Session;
 import model.Skill;
@@ -36,19 +37,22 @@ public class SessionBookingController {
     private final MentorAvailabilityRepository availabilityRepository;
     private final SessionEmailService emailService;
     private final AiSummaryService aiSummaryService;
+    private final CreditTransactionRepository creditTransactionRepository;
 
     public SessionBookingController(UserRepository userRepository,
                                     SessionRepository sessionRepository,
                                     SkillRepository skillRepository,
                                     MentorAvailabilityRepository availabilityRepository,
                                     SessionEmailService emailService,
-                                    AiSummaryService aiSummaryService) {
+                                    AiSummaryService aiSummaryService,
+                                    CreditTransactionRepository creditTransactionRepository) {
         this.userRepository = userRepository;
         this.sessionRepository = sessionRepository;
         this.skillRepository = skillRepository;
         this.availabilityRepository = availabilityRepository;
         this.emailService = emailService;
         this.aiSummaryService = aiSummaryService;
+        this.creditTransactionRepository = creditTransactionRepository;
     }
 
     // ── Mentor: create a session ──────────────────────────────────────────────
@@ -172,6 +176,15 @@ public class SessionBookingController {
                 return ResponseEntity.badRequest().body(Map.of("error", "Session is full"));
             }
 
+            int requiredCredits = calculateRequiredCredits(
+                    session.getDurationMinutes() != null ? session.getDurationMinutes() : 60);
+            int learnerCredits = learner.getCredits() != null ? learner.getCredits() : 0;
+            if (learnerCredits < requiredCredits) {
+                return ResponseEntity.badRequest().body(Map.of("error",
+                        "Insufficient credits. This session requires " + requiredCredits
+                        + " credits, you have " + learnerCredits + "."));
+            }
+
             session.setLearner(learner);
             session.setCurrentLearners(session.getCurrentLearners() + 1);
             if (session.getCurrentLearners() >= session.getMaxLearners()) {
@@ -211,6 +224,15 @@ public class SessionBookingController {
                     mentor, scheduledTime.minusMinutes(60), scheduledTime.plusMinutes(60))) {
                 return ResponseEntity.badRequest()
                         .body(Map.of("error", "Mentor already has a booking that overlaps this time slot"));
+            }
+
+            // Learner-initiated sessions default to 60 minutes = 1 credit
+            int requiredCreditsNew = calculateRequiredCredits(60);
+            int learnerCreditsNew = learner.getCredits() != null ? learner.getCredits() : 0;
+            if (learnerCreditsNew < requiredCreditsNew) {
+                return ResponseEntity.badRequest().body(Map.of("error",
+                        "Insufficient credits. This session requires " + requiredCreditsNew
+                        + " credits, you have " + learnerCreditsNew + "."));
             }
 
             Skill skill = null;
@@ -338,7 +360,7 @@ public class SessionBookingController {
         if (session == null) return ResponseEntity.notFound().build();
 
         if (!session.getMentor().getId().equals(user.getId())) {
-            return ResponseEntity.status(403).body(Map.of("error", "Only the session mentor can mark it complete"));
+            return ResponseEntity.status(403).body(Map.of("error", "Only the mentor can mark a session as complete"));
         }
         if (session.getStatus() == SessionStatus.COMPLETED) {
             return ResponseEntity.badRequest().body(Map.of("error", "Session is already marked complete"));
@@ -363,7 +385,30 @@ public class SessionBookingController {
         session.setAiSummary(summary);
         sessionRepository.save(session);
 
+        // Credit economy: mentor earns, learner pays (1 credit per hour, minimum 1)
+        int creditsEarned = calculateRequiredCredits(duration);
+        String reason = "Session completed: " + skillName;
+
+        user.setCredits((user.getCredits() != null ? user.getCredits() : 50) + creditsEarned);
+        userRepository.save(user);
+        creditTransactionRepository.save(new CreditTransaction(user, creditsEarned, reason, session.getId()));
+
+        if (session.getLearner() != null) {
+            User learner = userRepository.findById(session.getLearner().getId()).orElse(null);
+            if (learner != null) {
+                learner.setCredits((learner.getCredits() != null ? learner.getCredits() : 0) - creditsEarned);
+                userRepository.save(learner);
+                creditTransactionRepository.save(new CreditTransaction(learner, -creditsEarned, reason, session.getId()));
+            }
+        }
+
         return ResponseEntity.ok(toSessionDTO(session));
+    }
+
+    // ── Credit helpers ────────────────────────────────────────────────────────
+
+    private int calculateRequiredCredits(int durationMinutes) {
+        return Math.max(1, (int) Math.round(durationMinutes / 60.0));
     }
 
     // ── Availability helpers ───────────────────────────────────────────────────

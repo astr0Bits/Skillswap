@@ -5,6 +5,7 @@ import dto.BadgeDTO;
 import dto.UserStatsDTO;
 import model.User;
 import repository.AuditLogRepository;
+import repository.CreditTransactionRepository;
 import repository.MentorAvailabilityRepository;
 import repository.NotificationRepository;
 import repository.ReviewRepository;
@@ -20,9 +21,17 @@ import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 
+import model.Review;
+import model.UserSkill;
+
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -49,8 +58,8 @@ public class UserController {
     private final UserPreferencesRepository userPreferencesRepository;
     private final ReviewRepository reviewRepository;
     private final AuditLogRepository auditLogRepository;
+    private final CreditTransactionRepository creditTransactionRepository;
 
-    // FIX: All declared repositories are now properly injected via constructor
     public UserController(UserService userService,
                           PasswordEncoder passwordEncoder,
                           UserRepository userRepository,
@@ -62,7 +71,8 @@ public class UserController {
                           MentorAvailabilityRepository mentorAvailabilityRepository,
                           UserPreferencesRepository userPreferencesRepository,
                           ReviewRepository reviewRepository,
-                          AuditLogRepository auditLogRepository) {
+                          AuditLogRepository auditLogRepository,
+                          CreditTransactionRepository creditTransactionRepository) {
         this.userService = userService;
         this.passwordEncoder = passwordEncoder;
         this.userRepository = userRepository;
@@ -75,6 +85,7 @@ public class UserController {
         this.userPreferencesRepository = userPreferencesRepository;
         this.reviewRepository = reviewRepository;
         this.auditLogRepository = auditLogRepository;
+        this.creditTransactionRepository = creditTransactionRepository;
     }
 
     @PutMapping("/update/{email}")
@@ -115,7 +126,7 @@ public class UserController {
 
         // 1. password history — native query since no repo
         entityManager.createNativeQuery(
-            "DELETE FROM user_password_history WHERE user_id = :uid")
+            "DELETE FROM password_history WHERE user_id = :uid")
             .setParameter("uid", userId)
             .executeUpdate();
 
@@ -139,13 +150,18 @@ public class UserController {
         String email = authentication.getName();
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
-        return ResponseEntity.ok(Map.of(
-                "id", user.getId(),
-                "email", user.getEmail(),
-                "name", user.getName(),
-                "role", user.getRole().name(),
-                "credits", user.getCredits()
-        ));
+        UserStatsDTO stats = userStatsService.getUserStats(user);
+        Map<String, Object> resp = new LinkedHashMap<>();
+        resp.put("id",            user.getId());
+        resp.put("email",         user.getEmail());
+        resp.put("name",          user.getName());
+        resp.put("role",          user.getRole().name());
+        resp.put("location",      user.getLocation());
+        resp.put("credits",       user.getCredits() != null ? user.getCredits() : 0);
+        resp.put("totalSessions", stats.getTotalSessions());
+        resp.put("avgRating",     stats.getReputation() > 0
+                ? String.format("%.1f", stats.getReputation() / 20.0) : null);
+        return ResponseEntity.ok(resp);
     }
 
     @GetMapping("/me/badges")
@@ -159,14 +175,84 @@ public class UserController {
     @GetMapping("/me/earnings")
     public ResponseEntity<Map<String, Object>> getMentorEarnings(Authentication auth) {
         User user = getUserFromAuth(auth);
+
+        long totalCreditsEarned = creditTransactionRepository.sumEarnedByUser(user);
         long completedMentorSessions = sessionRepository.countCompletedMentorSessions(user);
-        int totalCreditsEarned = (int) completedMentorSessions * 3;
-        Map<String, Object> response = new HashMap<>();
+
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime monthStart = now.withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0).withNano(0);
+        long thisMonthCredits = creditTransactionRepository.sumEarnedByUserAndPeriod(user, monthStart, now.plusSeconds(1));
+
+        List<Map<String, Object>> monthlyBreakdown = new ArrayList<>();
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM");
+        for (int i = 5; i >= 0; i--) {
+            LocalDateTime start = now.minusMonths(i).withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0).withNano(0);
+            LocalDateTime end = start.plusMonths(1);
+            long credits = creditTransactionRepository.sumEarnedByUserAndPeriod(user, start, end);
+            Map<String, Object> entry = new LinkedHashMap<>();
+            entry.put("month", start.format(fmt));
+            entry.put("creditsEarned", credits);
+            monthlyBreakdown.add(entry);
+        }
+
+        Map<String, Object> response = new LinkedHashMap<>();
         response.put("totalCreditsEarned", totalCreditsEarned);
         response.put("completedSessionsAsMentor", completedMentorSessions);
-        response.put("thisMonthCredits", 0);
-        response.put("monthlyBreakdown", List.of());
+        response.put("thisMonthCredits", thisMonthCredits);
+        response.put("monthlyBreakdown", monthlyBreakdown);
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{userId}/public-profile")
+    public ResponseEntity<?> getPublicProfile(@PathVariable Long userId) {
+        User user = userRepository.findById(userId).orElse(null);
+        if (user == null) return ResponseEntity.notFound().build();
+
+        List<UserSkill> allSkills = userSkillRepository.findByUserId(userId);
+        List<Review> reviews = reviewRepository.findByRevieweeOrderByCreatedAtDesc(user);
+        Double avgRating = reviewRepository.findAverageRatingByReviewee(user);
+        long completedSessions = sessionRepository.countCompletedSessionsForUser(user);
+        UserStatsDTO stats = userStatsService.getUserStats(user);
+        List<BadgeDTO> earnedBadges = badgeService.getUserBadges(user, stats.getPoints(), stats.getTotalSessions(), stats.getReputation())
+                .stream().filter(BadgeDTO::isEarned).collect(Collectors.toList());
+
+        List<Map<String, Object>> mentorSkills = allSkills.stream()
+                .filter(us -> us.getType() == UserSkill.SkillType.MENTOR)
+                .map(us -> Map.of("skillName", (Object) us.getSkill().getName(),
+                        "level", us.getLevel() != null ? us.getLevel().name() : "BEGINNER"))
+                .collect(Collectors.toList());
+
+        List<Map<String, Object>> learnSkills = allSkills.stream()
+                .filter(us -> us.getType() == UserSkill.SkillType.LEARN)
+                .map(us -> Map.of("skillName", (Object) us.getSkill().getName(),
+                        "level", us.getLevel() != null ? us.getLevel().name() : "BEGINNER"))
+                .collect(Collectors.toList());
+
+        List<Map<String, Object>> reviewList = reviews.stream().limit(10).map(r -> {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("reviewerName", r.getReviewer() != null ? r.getReviewer().getName() : "Anonymous");
+            m.put("rating", r.getRating());
+            m.put("comment", r.getComment() != null ? r.getComment() : "");
+            m.put("date", r.getCreatedAt() != null ? r.getCreatedAt().toLocalDate().toString() : "");
+            return m;
+        }).collect(Collectors.toList());
+
+        Map<String, Object> profile = new LinkedHashMap<>();
+        profile.put("id", user.getId());
+        profile.put("name", user.getName());
+        profile.put("location", user.getLocation() != null ? user.getLocation() : "");
+        profile.put("role", user.getRole().name());
+        profile.put("mentorSkills", mentorSkills);
+        profile.put("learnSkills", learnSkills);
+        profile.put("averageRating", avgRating != null ? Math.round(avgRating * 10.0) / 10.0 : 0.0);
+        profile.put("totalReviews", reviews.size());
+        profile.put("completedSessions", completedSessions);
+        profile.put("badges", earnedBadges.stream()
+                .map(b -> Map.of("name", (Object) b.getName(), "icon", b.getIcon() != null ? b.getIcon() : ""))
+                .collect(Collectors.toList()));
+        profile.put("reviews", reviewList);
+
+        return ResponseEntity.ok(profile);
     }
 
     // Helper method to extract User from Authentication

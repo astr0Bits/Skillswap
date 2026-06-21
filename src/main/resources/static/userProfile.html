@@ -698,6 +698,10 @@
                         <label for="newPassword">New Password <span style="color:var(--muted); font-weight:400;">(leave blank to keep current)</span></label>
                         <input type="password" id="newPassword" placeholder="••••••••">
                     </div>
+                    <div class="field">
+                        <label for="currentPassword">Current Password <span style="color:var(--muted); font-weight:400;">(required when changing email or password)</span></label>
+                        <input type="password" id="currentPassword" placeholder="••••••••">
+                    </div>
                 </div>
 
                 <!-- Skills Card -->
@@ -958,45 +962,56 @@ async function saveProfile() {
     btn.disabled = true;
 
     try {
-        const payload = {
-            name:    document.getElementById('fullName').value.trim(),
-            email:   document.getElementById('email').value.trim(),
-            bio:     document.getElementById('bio').value.trim(),
-            location: document.getElementById('location').value,
-            role:    document.getElementById('role').value
-        };
-        const newPwd = document.getElementById('newPassword').value;
-        if (newPwd) payload.password = newPwd;
-		
-		// REMOVE everything from "// Try /users/me first" to the end of saveProfile's try block
-		// REPLACE the whole save section with:
-		
-		await apiRequest(`/users/update/${currentUser.email}`, {
-    		method: 'PUT',
-   			body: JSON.stringify(payload)
-		});
+        const nameVal        = document.getElementById('fullName').value.trim();
+        const newEmailVal    = document.getElementById('email').value.trim();
+        const locationVal    = document.getElementById('location').value;
+        const newPasswordVal = document.getElementById('newPassword').value;
+        const currentPwdVal  = document.getElementById('currentPassword').value;
 
-        currentUser = { ...currentUser, ...payload };
+        const emailChanged    = newEmailVal && newEmailVal !== currentUser.email;
+        const passwordChanged = newPasswordVal.length > 0;
 
-        // Update displayed info
-        const firstName = payload.name.split(' ')[0] || 'User';
-        const initial   = firstName.charAt(0).toUpperCase();
-        const roleDisplay = payload.role === 'SPONSOR' ? 'Sponsor' : 'Learner & Mentor';
+        if ((emailChanged || passwordChanged) && !currentPwdVal) {
+            showToast('error', 'Enter your current password to change email or password.');
+            btn.innerHTML = orig;
+            btn.disabled = false;
+            return;
+        }
+
+        const payload = { email: currentUser.email };
+        if (nameVal)     payload.name     = nameVal;
+        if (locationVal) payload.location = locationVal;
+        if (emailChanged)    payload.newEmail     = newEmailVal;
+        if (passwordChanged) payload.newPassword  = newPasswordVal;
+        if (currentPwdVal)   payload.currentPassword = currentPwdVal;
+
+        await apiRequest('/auth/update-account', { method: 'PUT', body: JSON.stringify(payload) });
+
+        if (emailChanged) currentUser = { ...currentUser, email: newEmailVal };
+        currentUser = { ...currentUser, name: nameVal || currentUser.name, location: locationVal };
+
+        const displayName = currentUser.name || 'User';
+        const firstName   = displayName.split(' ')[0];
+        const initial     = firstName.charAt(0).toUpperCase();
+        const roleDisplay = currentUser.role === 'SPONSOR' ? 'Sponsor' : 'Learner & Mentor';
 
         document.getElementById('profileAvatar').textContent   = initial;
-        document.getElementById('profileName').textContent     = payload.name;
-        document.getElementById('profileEmail').textContent    = payload.email;
-        document.getElementById('profileLocation').textContent = payload.location || 'UAE';
+        document.getElementById('profileName').textContent     = displayName;
+        document.getElementById('profileEmail').textContent    = currentUser.email;
+        document.getElementById('profileLocation').textContent = locationVal || 'UAE';
         document.getElementById('profileRoleBadge').innerHTML  =
             `<svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 10v6M2 10l10-5 10 5-10 5-10-5z"/></svg> ${roleDisplay}`;
         document.getElementById('sidebarAvatar').textContent = initial;
         document.getElementById('sidebarName').textContent   = firstName;
         document.getElementById('sidebarRole').textContent   = roleDisplay;
 
+        document.getElementById('newPassword').value     = '';
+        document.getElementById('currentPassword').value = '';
+
         showToast('success', '✅ Profile saved!');
     } catch (e) {
         console.error('saveProfile:', e);
-        showToast('error', 'Save failed: ' + e.message);
+        showToast('error', 'Save failed: ' + (e.message || 'Unknown error'));
     } finally {
         btn.innerHTML = orig;
         btn.disabled = false;
@@ -1022,6 +1037,10 @@ function renderSkills() {
     wrap.innerHTML = skills.map(s => `
         <span class="skill-tag ${s.type === 'mentor' ? 'skill-mentoring' : 'skill-learning'}">
             ${escapeHtml(s.name)}
+            ${s.type === 'learn' && s.skillId ? `<a href="/assessment.html?skillId=${s.skillId}&skillName=${encodeURIComponent(s.name)}"
+                title="Take Assessment" style="margin-left:5px;font-size:10px;font-weight:600;color:inherit;text-decoration:none;background:rgba(0,0,0,0.12);padding:1px 5px;border-radius:4px;">
+                Quiz
+            </a>` : ''}
             <button onclick="removeSkill(${s.id})" title="Remove" style="line-height:1;">
                 <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                     <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -1037,8 +1056,8 @@ async function loadMySkills() {
         const data = await apiRequest('/users/me/skills');
         // data = { teach: [...], learn: [...] }
         skills = [
-            ...(data.teach || []).map(s => ({ id: s.id, name: s.skillName, type: 'mentor' })),
-            ...(data.learn || []).map(s => ({ id: s.id, name: s.skillName, type: 'learn'  }))
+            ...(data.teach || []).map(s => ({ id: s.id, skillId: s.skillId, name: s.skillName, type: 'mentor' })),
+            ...(data.learn || []).map(s => ({ id: s.id, skillId: s.skillId, name: s.skillName, type: 'learn'  }))
         ];
         renderSkills();
     } catch (e) {

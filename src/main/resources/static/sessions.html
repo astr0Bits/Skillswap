@@ -503,7 +503,8 @@
         const pct = Math.round((s.currentLearners / s.maxLearners) * 100);
         const isFull = spotsLeft <= 0;
 
-        const canComplete = isMine && (s.status === 'SCHEDULED' || s.status === 'PENDING' || s.status === 'OPEN');
+        const isMentor = isMine && currentUserEmail && s.mentorEmail === currentUserEmail;
+        const canComplete = isMentor && (s.status === 'SCHEDULED' || s.status === 'PENDING' || s.status === 'OPEN');
 
         const footerBtns = isMine
             ? `${canComplete ? `<button class="btn btn-primary btn-sm" onclick="markComplete(${s.id})">
