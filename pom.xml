@@ -124,6 +124,19 @@
 		    <version>3.0.5</version>
 		</dependency>
 
+        <dependency>
+		    <groupId>com.stripe</groupId>
+		    <artifactId>stripe-java</artifactId>
+		    <version>28.3.0</version> <!-- Use the latest stable version -->
+		</dependency>
+		
+				<!-- https://mvnrepository.com/artifact/com.github.vladimir-bukhtoyarov/bucket4j-core --> 
+		<dependency> 
+			<groupId>com.github.vladimir-bukhtoyarov</groupId> 
+			<artifactId>bucket4j-core</artifactId> 
+			<version>6.2.0</version> 
+		</dependency> 
+
     </dependencies>
 
     <build>

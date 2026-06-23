@@ -72,7 +72,7 @@ public class AuthTokenFilter extends OncePerRequestFilter {
         String uri = request.getRequestURI();
 
         // Skip static resources and public authentication endpoints
-        if (uri.matches(".*(\\.css|\\.js|\\.png|\\.jpg|\\.jpeg|\\.gif|\\.svg|\\.ico)$") ||
+        if (uri.matches(".*\\.(css|js|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|otf|eot|webp|avif)$") ||
                 uri.startsWith("/css/") || uri.startsWith("/js/") || uri.startsWith("/images/") ||
                 uri.startsWith("/static/") || uri.startsWith("/webjars/") ||
                 uri.startsWith("/api/auth/") || uri.equals("/") || uri.endsWith(".html")) {

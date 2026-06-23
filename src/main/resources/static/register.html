@@ -739,6 +739,11 @@ to {
         info:    '<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>',
     };
 
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
+    }
+
     // ─── ALERT SYSTEM ───
     function showAlert(type, title, detail = '', linkText = '', linkHref = '') {
         const box   = document.getElementById('alertBox');
@@ -754,7 +759,7 @@ to {
 
         // Detail with optional inline link
         if (linkText && linkHref) {
-            dtl.innerHTML = detail + ' <a class="alert-link" href="' + linkHref + '">' + linkText + '</a>';
+            dtl.innerHTML = escapeHtml(detail) + ' <a class="alert-link" href="' + linkHref + '">' + escapeHtml(linkText) + '</a>';
         } else {
             dtl.textContent = detail;
         }

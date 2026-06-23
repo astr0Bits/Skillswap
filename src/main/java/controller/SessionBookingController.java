@@ -26,10 +26,14 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @RestController
 @RequestMapping("/api/sessions")
 public class SessionBookingController {
+
+    private static final Logger log = LoggerFactory.getLogger(SessionBookingController.class);
 
     private final UserRepository userRepository;
     private final SessionRepository sessionRepository;
@@ -38,6 +42,7 @@ public class SessionBookingController {
     private final SessionEmailService emailService;
     private final AiSummaryService aiSummaryService;
     private final CreditTransactionRepository creditTransactionRepository;
+    private final AssessmentAttemptRepository assessmentAttemptRepository;
 
     public SessionBookingController(UserRepository userRepository,
                                     SessionRepository sessionRepository,
@@ -45,7 +50,8 @@ public class SessionBookingController {
                                     MentorAvailabilityRepository availabilityRepository,
                                     SessionEmailService emailService,
                                     AiSummaryService aiSummaryService,
-                                    CreditTransactionRepository creditTransactionRepository) {
+                                    CreditTransactionRepository creditTransactionRepository,
+                                    AssessmentAttemptRepository assessmentAttemptRepository) {
         this.userRepository = userRepository;
         this.sessionRepository = sessionRepository;
         this.skillRepository = skillRepository;
@@ -53,6 +59,7 @@ public class SessionBookingController {
         this.emailService = emailService;
         this.aiSummaryService = aiSummaryService;
         this.creditTransactionRepository = creditTransactionRepository;
+        this.assessmentAttemptRepository = assessmentAttemptRepository;
     }
 
     // ── Mentor: create a session ──────────────────────────────────────────────
@@ -96,10 +103,9 @@ public class SessionBookingController {
             if (link == null || link.isBlank()) {
                 return ResponseEntity.badRequest().body(Map.of("error", "Meeting link is required for online sessions"));
             }
-            String lc = link.toLowerCase();
-            if (!lc.startsWith("https://zoom.us") && !lc.startsWith("https://teams.microsoft.com")) {
+            if (!link.toLowerCase().startsWith("https://")) {
                 return ResponseEntity.badRequest().body(
-                        Map.of("error", "Meeting link must start with https://zoom.us or https://teams.microsoft.com"));
+                        Map.of("error", "Meeting link must be a valid https:// URL"));
             }
         } else if ("IN_PERSON".equalsIgnoreCase(mode)) {
             String loc = dto.getPhysicalLocation();
@@ -403,6 +409,31 @@ public class SessionBookingController {
         }
 
         return ResponseEntity.ok(toSessionDTO(session));
+    }
+
+    // ── Learner: check for a post-session assessment that hasn't been taken yet ──
+
+    @GetMapping("/me/pending-assessment")
+    public ResponseEntity<?> pendingAssessment(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(401).body(Map.of("error", "Not authenticated"));
+        }
+        UserDetailsImpl principal = (UserDetailsImpl) authentication.getPrincipal();
+        User user = userRepository.findById(principal.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        List<Session> completed = sessionRepository.findCompletedSessionsForLearner(user);
+        for (Session s : completed) {
+            Long skillId = s.getSkill().getId();
+            if (!assessmentAttemptRepository.existsByUserAndSkillId(user, skillId)) {
+                Map<String, Object> result = new LinkedHashMap<>();
+                result.put("skillId", skillId);
+                result.put("skillName", s.getSkill().getName());
+                result.put("sessionId", s.getId());
+                return ResponseEntity.ok(result);
+            }
+        }
+        return ResponseEntity.noContent().build();
     }
 
     // ── Credit helpers ────────────────────────────────────────────────────────

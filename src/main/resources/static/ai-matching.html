@@ -709,7 +709,7 @@
             if (matches.length === 0) { skillDropdownEl.classList.remove('open'); return; }
 
             skillDropdownEl.innerHTML = matches.map(s =>
-                `<div class="skill-opt" data-name="${s.name}">${s.name}</div>`
+                `<div class="skill-opt" data-name="${escapeHtml(s.name)}">${escapeHtml(s.name)}</div>`
             ).join('');
             skillDropdownEl.classList.add('open');
         });
@@ -744,7 +744,7 @@
             const tag = document.createElement('span');
             tag.className = 'stag';
             tag.dataset.skill = name;
-            tag.innerHTML = name + ' <span class="stag-remove">×</span>';
+            tag.innerHTML = escapeHtml(name) + ' <span class="stag-remove">×</span>';
             tag.querySelector('.stag-remove').addEventListener('click', () => {
                 selectedSkillNames.delete(name);
                 tag.remove();
@@ -815,6 +815,11 @@
         });
 
         // ── Render results ────────────────────────────────────────────────────
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
+        }
+
         function stars(rating) {
             const full  = Math.floor(rating);
             const half  = rating - full >= 0.5 ? 1 : 0;
@@ -823,13 +828,13 @@
         }
 
         function skillPills(skillArray) {
-            return skillArray.map(s => `<span class="match-stag">${s}</span>`).join('');
+            return skillArray.map(s => `<span class="match-stag">${escapeHtml(s)}</span>`).join('');
         }
 
         function badgeChips(badgeArray) {
             if (!badgeArray || badgeArray.length === 0) return '';
             return '<div class="badge-list">' +
-                badgeArray.map(b => `<span class="badge-chip">🏅 ${b}</span>`).join('') +
+                badgeArray.map(b => `<span class="badge-chip">🏅 ${escapeHtml(b)}</span>`).join('') +
                 '</div>';
         }
 
@@ -859,8 +864,8 @@
             topEl.innerHTML = `
                 <div class="top-match">
                     <div class="match-score">${top.matchPercentage}%</div>
-                    <h3>${top.name}</h3>
-                    <div class="mentor-location"><i class="fas fa-map-marker-alt"></i> ${top.location || 'Location not set'}</div>
+                    <h3>${escapeHtml(top.name)}</h3>
+                    <div class="mentor-location"><i class="fas fa-map-marker-alt"></i> ${escapeHtml(top.location || 'Location not set')}</div>
                     <div class="match-tags">${skillPills(top.skills || [])}</div>
                     <div class="mentor-meta">
                         <span class="stars">${stars(top.averageRating)}</span>
@@ -892,8 +897,8 @@
                     card.innerHTML = `
                         <div class="rc-head">
                             <div>
-                                <div class="rc-name">${m.name}</div>
-                                <div class="rc-loc"><i class="fas fa-map-marker-alt" style="font-size:.75rem"></i> ${m.location || 'Location not set'}</div>
+                                <div class="rc-name">${escapeHtml(m.name)}</div>
+                                <div class="rc-loc"><i class="fas fa-map-marker-alt" style="font-size:.75rem"></i> ${escapeHtml(m.location || 'Location not set')}</div>
                                 <div class="rc-score">${m.matchPercentage}% Match</div>
                             </div>
                             <div class="match-actions">
@@ -907,7 +912,7 @@
                             <span>·</span>
                             <span>${m.totalSessions} sessions</span>
                         </div>
-                        <div class="rc-tags">${(m.skills || []).map(s => `<span class="rc-tag">${s}</span>`).join('')}</div>`;
+                        <div class="rc-tags">${(m.skills || []).map(s => `<span class="rc-tag">${escapeHtml(s)}</span>`).join('')}</div>`;
                     otherEl.appendChild(card);
                 });
             }

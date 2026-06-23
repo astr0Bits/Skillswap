@@ -55,7 +55,7 @@ public class PublicSessionController {
         }
         if ("ONLINE".equalsIgnoreCase(dto.getMode()) &&
             (dto.getMeetingLink() == null || dto.getMeetingLink().isBlank())) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Teams link is required for online sessions"));
+            return ResponseEntity.badRequest().body(Map.of("error", "Meeting link is required for online sessions"));
         }
         if ("IN_PERSON".equalsIgnoreCase(dto.getMode()) &&
             (dto.getLocation() == null || dto.getLocation().isBlank())) {

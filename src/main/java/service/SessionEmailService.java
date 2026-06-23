@@ -61,9 +61,14 @@ public class SessionEmailService {
         String modeBlock;
         if (isOnline) {
             String link = session.getMeetingLink();
-            boolean isZoom = link != null && link.toLowerCase().startsWith("https://zoom.us");
-            String platform = isZoom ? "Zoom" : "Microsoft Teams";
-            String btnColor = isZoom ? "#0b5cff" : "#464eb8";
+            String lc = link != null ? link.toLowerCase() : "";
+            String platform = lc.contains("zoom.us") ? "Zoom"
+                    : lc.contains("teams.microsoft.com") ? "Microsoft Teams"
+                    : lc.contains("meet.google.com") ? "Google Meet"
+                    : "Online Meeting";
+            String btnColor = lc.contains("zoom.us") ? "#0b5cff"
+                    : lc.contains("teams.microsoft.com") ? "#464eb8"
+                    : "#4f46e5";
             String linkHtml = link != null && !link.isBlank()
                 ? """
                   <p style="color:#475569;font-size:14px;margin:0 0 12px;">

@@ -799,6 +799,11 @@
             }
         }, 300));
 
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
+        }
+
         function displayResults(skills) {
             if (skills.length === 0) {
                 resultsContainer.innerHTML = '<p class="search-no-results">No skills found</p>';
@@ -806,8 +811,8 @@
             }
             const html = skills.map(skill => `
                 <div class="search-result-item">
-                    <strong>${skill.name}</strong>
-                    <span class="result-category-badge">${skill.category}</span>
+                    <strong>${escapeHtml(skill.name)}</strong>
+                    <span class="result-category-badge">${escapeHtml(skill.category)}</span>
                 </div>
             `).join('');
             resultsContainer.innerHTML = html;

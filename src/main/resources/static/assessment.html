@@ -73,9 +73,9 @@
 <body>
 
 <div class="container">
-  <a href="/userProfile.html" class="back-link">
+  <a id="backLink" href="/userProfile.html" class="back-link">
     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-    Back to Profile
+    <span id="backLinkText">Back to Profile</span>
   </a>
 
   <h1 id="pageTitle">Skill Assessment</h1>
@@ -119,9 +119,20 @@
 const token = localStorage.getItem('jwtToken');
 if (!token) window.location.href = '/login.html';
 
-const params     = new URLSearchParams(location.search);
-const skillId    = params.get('skillId');
-const skillName  = params.get('skillName') || 'Skill';
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
+}
+
+const params      = new URLSearchParams(location.search);
+const skillId     = params.get('skillId');
+const skillName   = params.get('skillName') || 'Skill';
+const fromSession = params.get('fromSession') === 'true';
+
+if (fromSession) {
+  document.getElementById('backLink').href = '/sessions.html';
+  document.getElementById('backLinkText').textContent = 'Back to Sessions';
+}
 
 let assessmentId  = null;
 let questions     = [];
@@ -130,7 +141,9 @@ let current       = 0;
 
 document.getElementById('pageTitle').textContent = skillName + ' Assessment';
 document.getElementById('pageSubtitle').textContent =
-    'Answer ' + 5 + ' multiple-choice questions to earn the Skill Validated badge.';
+    fromSession
+        ? 'Complete this quiz to earn your Skill Validated badge for this session.'
+        : 'Answer ' + 5 + ' multiple-choice questions to earn the Skill Validated badge.';
 
 async function apiFetch(path, opts = {}) {
   const res = await fetch('/api' + path, {
@@ -182,7 +195,7 @@ function renderQuestion() {
   const container = document.getElementById('optionsContainer');
   container.innerHTML = opts.map((opt, i) => `
     <button class="option-btn${selectedAnswers[current] === i ? ' selected' : ''}"
-            onclick="selectOption(${i})">${opt}</button>
+            onclick="selectOption(${i})">${escapeHtml(opt)}</button>
   `).join('');
 
   document.getElementById('prevBtn').style.display = current > 0 ? 'inline-flex' : 'none';
@@ -252,13 +265,13 @@ function showResult(result) {
     <div class="result-sub">
       You scored ${result.correct} out of ${result.total} (${score}%).
       ${passed
-        ? 'Congratulations — you\'ve demonstrated solid knowledge of ' + sName + '!'
+        ? 'Congratulations — you\'ve demonstrated solid knowledge of ' + escapeHtml(sName) + '!'
         : 'You need ' + pct + '% to pass. Review the topic and try again.'}
     </div>
-    ${badge ? `<div class="badge-award">🏅 New Badge Earned: ${badge}</div>` : ''}
+    ${badge ? `<div class="badge-award">🏅 New Badge Earned: ${escapeHtml(badge)}</div>` : ''}
     <div class="result-actions">
-      <a href="/userProfile.html" class="btn btn-ghost">Back to Profile</a>
-      <a href="/assessment.html?skillId=${skillId}&skillName=${encodeURIComponent(sName)}" class="btn btn-primary">Retake Assessment</a>
+      <a href="${fromSession ? '/sessions.html' : '/userProfile.html'}" class="btn btn-ghost">${fromSession ? 'Back to Sessions' : 'Back to Profile'}</a>
+      <a href="/assessment.html?skillId=${encodeURIComponent(skillId || result.skillId || '')}&skillName=${encodeURIComponent(sName)}" class="btn btn-primary">Retake Assessment</a>
     </div>
   `;
 }

@@ -22,6 +22,9 @@ public interface SessionRepository extends JpaRepository<Session, Long> {
     
     @Query("SELECT s FROM Session s WHERE (s.mentor = :user OR s.learner = :user) AND s.status = 'COMPLETED' ORDER BY s.scheduledTime DESC")
     List<Session> findCompletedSessionsForUser(@Param("user") User user);
+
+    @Query("SELECT s FROM Session s WHERE s.learner = :user AND s.status = 'COMPLETED' AND s.skill IS NOT NULL ORDER BY s.updatedAt DESC")
+    List<Session> findCompletedSessionsForLearner(@Param("user") User user);
     
     @Query("SELECT s FROM Session s WHERE s.mentor = :mentor AND s.status = 'COMPLETED' AND s.scheduledTime BETWEEN :start AND :end")
     List<Session> findCompletedSessionsByMentorAndDateRange(@Param("mentor") User mentor,

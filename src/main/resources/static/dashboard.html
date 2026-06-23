@@ -700,8 +700,8 @@
                             </div>
                         </div>
                         <div id="createMeetingLinkGroup" style="margin-bottom:12px;">
-                            <label style="font-size:13px;font-weight:500;color:var(--muted);display:block;margin-bottom:4px;">Meeting Link (Zoom or Teams)</label>
-                            <input type="url" id="createMeetingLink" placeholder="https://zoom.us/j/... or https://teams.microsoft.com/..." style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;">
+                            <label style="font-size:13px;font-weight:500;color:var(--muted);display:block;margin-bottom:4px;">Meeting Link</label>
+                            <input type="url" id="createMeetingLink" placeholder="https://zoom.us/j/... or https://meet.google.com/... or any video call link" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;">
                         </div>
                         <div id="createPhysicalLocationGroup" style="display:none;margin-bottom:12px;">
                             <label style="font-size:13px;font-weight:500;color:var(--muted);display:block;margin-bottom:4px;">Physical Location</label>
@@ -752,7 +752,7 @@
         <div class="form-group"><label>Skill</label><select id="skillSelect"></select></div>
         <div class="form-group"><label>Scheduled Time</label><input type="datetime-local" id="scheduledTime"></div>
         <div class="form-group"><label>Duration (minutes)</label><input type="number" id="duration" value="60"></div>
-        <div class="form-group"><label>Mode</label><select id="mode"><option value="ONLINE">Online (Zoom)</option><option value="IN_PERSON">In-person</option></select></div>
+        <div class="form-group"><label>Mode</label><select id="mode"><option value="ONLINE">Online</option><option value="IN_PERSON">In-person</option></select></div>
         <div class="form-group"><label>Location</label><input type="text" id="location" placeholder="Address or meeting link"></div>
         <div style="display:flex; gap:12px; justify-content:flex-end;"><button class="btn btn-outline" id="closeModalBtn">Cancel</button><button class="btn btn-primary" id="confirmRequestBtn">Submit</button></div>
     </div>
@@ -799,6 +799,16 @@
     });
 
 
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
+    }
+
+    function safeUrl(url) {
+        if (!url) return '';
+        return (url.startsWith('https://') || url.startsWith('http://')) ? url : '#';
+    }
+
     async function loadDashboard() {
         try {
            const [profile, stats, sessions, skills, revs, recs] = await Promise.all([
@@ -841,20 +851,20 @@
         const mentorSelect = document.getElementById('mentorSelect');
         mentorSelect.innerHTML = '<option value="">-- Select a mentor --</option>';
         (mentorsList || []).forEach(m => {
-            const skillsStr = (m.skills || []).map(s => s.name).join(', ');
-            mentorSelect.innerHTML += `<option value="${m.id}">${m.name} (${skillsStr})</option>`;
+            const skillsStr = (m.skills || []).map(s => escapeHtml(s.name)).join(', ');
+            mentorSelect.innerHTML += `<option value="${m.id}">${escapeHtml(m.name)} (${skillsStr})</option>`;
         });
         const skillSelect = document.getElementById('skillSelect');
         skillSelect.innerHTML = '<option value="">-- Select a skill --</option>';
         (skillsList || []).forEach(s => {
-            skillSelect.innerHTML += `<option value="${s.id}">${s.name} (${s.category || ''})</option>`;
+            skillSelect.innerHTML += `<option value="${s.id}">${escapeHtml(s.name)} (${escapeHtml(s.category || '')})</option>`;
         });
         // Re-populate the mentor create-session skill dropdown now that skillsList is loaded
         const createSel = document.getElementById('createSkillSelect');
         if (createSel) {
             createSel.innerHTML = '<option value="">-- Select a skill --</option>';
             (skillsList || []).forEach(s => {
-                createSel.innerHTML += `<option value="${s.id}">${s.name}${s.category ? ' (' + s.category + ')' : ''}</option>`;
+                createSel.innerHTML += `<option value="${s.id}">${escapeHtml(s.name)}${s.category ? ' (' + escapeHtml(s.category) + ')' : ''}</option>`;
             });
         }
     }
@@ -893,19 +903,19 @@
         sessEl.innerHTML = upcomingSessions.map(s => {
             const isOnline = s.mode === 'ONLINE';
             const link = s.meetingLink || '';
-            const isZoom = link.toLowerCase().startsWith('https://zoom.us');
-            const platform = isZoom ? 'Zoom' : 'Teams';
-            const badgeColor = isZoom ? '#0b5cff' : '#464eb8';
+            const _lc = link.toLowerCase();
+            const platform = _lc.includes('zoom.us') ? 'Zoom' : _lc.includes('teams.microsoft.com') ? 'Teams' : _lc.includes('meet.google.com') ? 'Meet' : 'Online';
+            const badgeColor = _lc.includes('zoom.us') ? '#0b5cff' : _lc.includes('teams.microsoft.com') ? '#464eb8' : '#4f46e5';
             const physLoc = s.physicalLocation || '';
 
             const joinBlock = isOnline
                 ? (link
                     ? `<div style="display:flex;gap:8px;align-items:center;margin:8px 0 4px;flex-wrap:wrap;">
                          <span style="background:${badgeColor};color:white;font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;">${platform}</span>
-                         <a href="${link}" target="_blank" class="btn btn-primary" style="padding:5px 14px;font-size:12px;text-decoration:none;">
+                         <a href="${safeUrl(link)}" target="_blank" class="btn btn-primary" style="padding:5px 14px;font-size:12px;text-decoration:none;">
                            <i class="fas fa-video"></i> Join Session
                          </a>
-                         <button class="btn btn-outline copy-link-btn" data-link="${link}" style="padding:5px 12px;font-size:12px;">
+                         <button class="btn btn-outline copy-link-btn" data-link="${escapeHtml(link)}" style="padding:5px 12px;font-size:12px;">
                            <i class="fas fa-copy"></i> <span class="copy-label">Copy Link</span>
                          </button>
                        </div>`
@@ -913,18 +923,18 @@
                 : (physLoc
                     ? `<div style="display:flex;gap:8px;align-items:center;margin:8px 0 4px;flex-wrap:wrap;">
                          <span style="background:#fef3c7;color:#92400e;font-size:12px;font-weight:500;padding:3px 10px;border-radius:6px;">
-                           📍 ${physLoc}
+                           📍 ${escapeHtml(physLoc)}
                          </span>
-                         <button class="btn btn-outline copy-addr-btn" data-addr="${physLoc}" style="padding:5px 12px;font-size:12px;">
+                         <button class="btn btn-outline copy-addr-btn" data-addr="${escapeHtml(physLoc)}" style="padding:5px 12px;font-size:12px;">
                            <i class="fas fa-copy"></i> <span class="copy-label">Copy Address</span>
                          </button>
                        </div>`
                     : '');
 
             return `<div class="session-item">
-                <div class="session-row"><span class="session-title">${s.skillName || ''}</span><span class="session-date">${new Date(s.scheduledTime).toLocaleString()}</span></div>
+                <div class="session-row"><span class="session-title">${escapeHtml(s.skillName || '')}</span><span class="session-date">${new Date(s.scheduledTime).toLocaleString()}</span></div>
                 <div class="session-meta">
-                    <span class="meta-item"><i class="fas fa-user"></i> ${s.mentorName || s.learnerName || ''}</span>
+                    <span class="meta-item"><i class="fas fa-user"></i> ${escapeHtml(s.mentorName || s.learnerName || '')}</span>
                     <span class="meta-item"><i class="fas fa-clock"></i> ${s.durationMinutes || 60} min</span>
                     <span class="meta-item"><i class="fas ${isOnline ? 'fa-video' : 'fa-map-marker-alt'}"></i> ${isOnline ? 'Online' : 'In-person'}</span>
                 </div>
@@ -954,8 +964,8 @@
     }
 
     function renderSkillsShowcase() {
-        const teachTags = (userSkills.teach || []).map(s => `<span class="stag stag-teach"><i class="fas fa-chalkboard-teacher"></i> ${s.skillName}</span>`).join('');
-        const learnTags = (userSkills.learn || []).map(s => `<span class="stag stag-learn"><i class="fas fa-graduation-cap"></i> ${s.skillName}</span>`).join('');
+        const teachTags = (userSkills.teach || []).map(s => `<span class="stag stag-teach"><i class="fas fa-chalkboard-teacher"></i> ${escapeHtml(s.skillName)}</span>`).join('');
+        const learnTags = (userSkills.learn || []).map(s => `<span class="stag stag-learn"><i class="fas fa-graduation-cap"></i> ${escapeHtml(s.skillName)}</span>`).join('');
         document.getElementById('skillsContainer').innerHTML = `<div class="skill-tags">${teachTags} ${learnTags}</div>`;
     }
 
@@ -968,7 +978,7 @@
         el.innerHTML = sessionHistory.slice(0,5).map(s => `
             <div class="history-item">
                 <div class="history-icon hi-completed"><i class="fas fa-check"></i></div>
-                <div class="history-info"><h4>${s.skillName}</h4><p>${s.mentorName || s.learnerName || ''} · ${new Date(s.scheduledTime).toLocaleDateString()}</p></div>
+                <div class="history-info"><h4>${escapeHtml(s.skillName)}</h4><p>${escapeHtml(s.mentorName || s.learnerName || '')} · ${new Date(s.scheduledTime).toLocaleDateString()}</p></div>
                 <div class="history-pts earned">+15 pts</div>
             </div>`).join('');
     }
@@ -1005,7 +1015,7 @@
             recsEl.innerHTML = '<p style="color:var(--muted);">No recommendations yet.</p>';
             return;
         }
-        recsEl.innerHTML = recommendations.map(r => `<div class="rec-item"><div class="rec-icon"><i class="fas fa-code"></i></div><div class="rec-info"><h4>${r.skillName}</h4><p>${r.description || 'Recommended for you'}</p></div><div class="rec-match">${r.matchPercent}%</div></div>`).join('');
+        recsEl.innerHTML = recommendations.map(r => `<div class="rec-item"><div class="rec-icon"><i class="fas fa-code"></i></div><div class="rec-info"><h4>${escapeHtml(r.skillName)}</h4><p>${escapeHtml(r.description || 'Recommended for you')}</p></div><div class="rec-match">${r.matchPercent}%</div></div>`).join('');
     }
 
     function renderReviews() {
@@ -1014,7 +1024,7 @@
             revEl.innerHTML = '<p style="color:var(--muted);">No reviews yet.</p>';
             return;
         }
-        revEl.innerHTML = reviews.slice(0,3).map(r => `<div class="review-item"><div class="review-header"><div class="reviewer"><div class="reviewer-av">${(r.reviewerName?.[0] || 'U')}</div><span class="reviewer-name">${r.reviewerName}</span></div><span class="review-stars"><i class="fas fa-star"></i> ${r.rating}</span></div><p class="review-text">${r.comment || ''}</p></div>`).join('');
+        revEl.innerHTML = reviews.slice(0,3).map(r => `<div class="review-item"><div class="review-header"><div class="reviewer"><div class="reviewer-av">${escapeHtml(r.reviewerName?.[0] || 'U')}</div><span class="reviewer-name">${escapeHtml(r.reviewerName)}</span></div><span class="review-stars"><i class="fas fa-star"></i> ${r.rating}</span></div><p class="review-text">${escapeHtml(r.comment || '')}</p></div>`).join('');
     }
 
     function renderMentorView() {
@@ -1026,23 +1036,23 @@
                 const isOnline = s.mode === 'ONLINE';
                 const link = s.meetingLink || '';
                 const physLoc = s.physicalLocation || '';
-                const isZoom = link.toLowerCase().startsWith('https://zoom.us');
-                const platform = isZoom ? 'Zoom' : 'Teams';
+                const _lc = link.toLowerCase();
+                const platform = _lc.includes('zoom.us') ? 'Zoom' : _lc.includes('teams.microsoft.com') ? 'Teams' : _lc.includes('meet.google.com') ? 'Meet' : 'Online';
                 const linkOrLoc = isOnline
                     ? (link
                         ? `<span style="font-size:12px;color:var(--indigo);">${platform}</span>
-                           <a href="${link}" target="_blank" style="font-size:11px;color:var(--indigo);margin-left:6px;word-break:break-all;">${link.length > 40 ? link.slice(0,40)+'…' : link}</a>
-                           <button class="btn btn-outline copy-mentor-link" data-val="${link}" style="padding:2px 8px;font-size:11px;margin-left:6px;">Copy</button>`
+                           <a href="${safeUrl(link)}" target="_blank" style="font-size:11px;color:var(--indigo);margin-left:6px;word-break:break-all;">${escapeHtml(link.length > 40 ? link.slice(0,40)+'…' : link)}</a>
+                           <button class="btn btn-outline copy-mentor-link" data-val="${escapeHtml(link)}" style="padding:2px 8px;font-size:11px;margin-left:6px;">Copy</button>`
                         : `<span style="font-size:12px;color:var(--muted);">No link set</span>`)
                     : (physLoc
-                        ? `<span style="font-size:12px;">📍 ${physLoc}</span>
-                           <button class="btn btn-outline copy-mentor-link" data-val="${physLoc}" style="padding:2px 8px;font-size:11px;margin-left:6px;">Copy</button>`
+                        ? `<span style="font-size:12px;">📍 ${escapeHtml(physLoc)}</span>
+                           <button class="btn btn-outline copy-mentor-link" data-val="${escapeHtml(physLoc)}" style="padding:2px 8px;font-size:11px;margin-left:6px;">Copy</button>`
                         : `<span style="font-size:12px;color:var(--muted);">No location set</span>`);
                 const learners = `${s.currentLearners ?? 0}/${s.maxLearners ?? 1} learner${(s.maxLearners ?? 1) > 1 ? 's' : ''}`;
                 return `<div class="history-item">
                     <div class="history-icon hi-completed"><i class="fas fa-calendar"></i></div>
                     <div class="history-info" style="flex:1;">
-                        <h4>${s.skillName || ''}</h4>
+                        <h4>${escapeHtml(s.skillName || '')}</h4>
                         <p>${new Date(s.scheduledTime).toLocaleString()}</p>
                         <div style="margin-top:4px;display:flex;align-items:center;flex-wrap:wrap;gap:4px;">${linkOrLoc}</div>
                     </div>
@@ -1082,20 +1092,21 @@
             const isOnline = s.mode === 'ONLINE' || s.mode?.name === 'ONLINE';
             const link = s.meetingLink || '';
             const physLoc = s.physicalLocation || s.location || '';
-            const isZoom = link.toLowerCase().startsWith('https://zoom.us');
-            const platform = isZoom ? 'Zoom' : 'Teams';
+            const _lc2 = link.toLowerCase();
+            const platform = _lc2.includes('zoom.us') ? 'Zoom' : _lc2.includes('teams.microsoft.com') ? 'Teams' : _lc2.includes('meet.google.com') ? 'Meet' : 'Online';
+            const badgeColor2 = _lc2.includes('zoom.us') ? '#0b5cff' : _lc2.includes('teams.microsoft.com') ? '#464eb8' : '#4f46e5';
             const linkOrLoc = isOnline
                 ? (link
                     ? `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-                         <span style="background:${isZoom ? '#0b5cff' : '#464eb8'};color:white;font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;">${platform}</span>
-                         <a href="${link}" target="_blank" style="font-size:11px;color:var(--indigo);word-break:break-all;">${link.length > 44 ? link.slice(0,44)+'…' : link}</a>
-                         <button class="btn btn-outline copy-created-val" data-val="${link}" style="padding:2px 8px;font-size:11px;">Copy</button>
+                         <span style="background:${badgeColor2};color:white;font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;">${platform}</span>
+                         <a href="${safeUrl(link)}" target="_blank" style="font-size:11px;color:var(--indigo);word-break:break-all;">${escapeHtml(link.length > 44 ? link.slice(0,44)+'…' : link)}</a>
+                         <button class="btn btn-outline copy-created-val" data-val="${escapeHtml(link)}" style="padding:2px 8px;font-size:11px;">Copy</button>
                        </div>`
                     : '<span style="font-size:12px;color:var(--muted);">No link</span>')
                 : (physLoc
                     ? `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-                         <span style="font-size:12px;">📍 ${physLoc}</span>
-                         <button class="btn btn-outline copy-created-val" data-val="${physLoc}" style="padding:2px 8px;font-size:11px;">Copy</button>
+                         <span style="font-size:12px;">📍 ${escapeHtml(physLoc)}</span>
+                         <button class="btn btn-outline copy-created-val" data-val="${escapeHtml(physLoc)}" style="padding:2px 8px;font-size:11px;">Copy</button>
                        </div>`
                     : '<span style="font-size:12px;color:var(--muted);">No location set</span>');
             const learners = `${s.currentLearners ?? 0} / ${s.maxLearners ?? 1} learner${(s.maxLearners ?? 1) > 1 ? 's' : ''}`;
@@ -1103,7 +1114,7 @@
             return `<div class="history-item" style="align-items:flex-start;">
                 <div class="history-icon hi-completed" style="margin-top:2px;"><i class="fas fa-chalkboard-teacher"></i></div>
                 <div class="history-info" style="flex:1;">
-                    <h4>${s.skillName || ''}</h4>
+                    <h4>${escapeHtml(s.skillName || '')}</h4>
                     <p>${s.scheduledTime ? new Date(s.scheduledTime).toLocaleString() : '—'} · ${s.durationMinutes || 60} min</p>
                     <div style="margin-top:4px;">${linkOrLoc}</div>
                 </div>
@@ -1127,7 +1138,7 @@
         if (!sel) return;
         sel.innerHTML = '<option value="">-- Select a skill --</option>';
         (skillsList || []).forEach(s => {
-            sel.innerHTML += `<option value="${s.id}">${s.name}${s.category ? ' (' + s.category + ')' : ''}</option>`;
+            sel.innerHTML += `<option value="${s.id}">${escapeHtml(s.name)}${s.category ? ' (' + escapeHtml(s.category) + ')' : ''}</option>`;
         });
         document.querySelectorAll('input[name="createMode"]').forEach(radio => {
             radio.addEventListener('change', () => {
@@ -1162,7 +1173,7 @@
             if (!scheduledTime) { showMsg('Please enter a scheduled date and time.', true); return; }
             if (isNaN(duration) || duration < 15 || duration > 480) { showMsg('Duration must be between 15 and 480 minutes.', true); return; }
             if (isNaN(maxLearners) || maxLearners < 1 || maxLearners > 50) { showMsg('Max learners must be between 1 and 50.', true); return; }
-            if (isOnline && !meetingLink) { showMsg('A Zoom or Teams meeting link is required for online sessions.', true); return; }
+            if (isOnline && !meetingLink) { showMsg('A meeting link is required for online sessions.', true); return; }
             if (!isOnline && !physicalLocation) { showMsg('Physical location is required for in-person sessions.', true); return; }
             const payload = { skillId, scheduledTime, durationMinutes: duration, maxLearners, mode, description };
             if (isOnline) payload.meetingLink = meetingLink;

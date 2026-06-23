@@ -243,7 +243,7 @@
                 <div class="mode-toggle">
                     <button class="mode-opt selected-online" id="modeOnlineBtn"
                             onclick="selectMode('ONLINE')">
-                        💻 Online (Teams)
+                        💻 Online
                     </button>
                     <button class="mode-opt" id="modeInPersonBtn"
                             onclick="selectMode('IN_PERSON')">
@@ -255,11 +255,11 @@
             <!-- Online only -->
             <div class="conditional-field visible" id="meetingLinkField">
                 <div class="field">
-                    <label>Microsoft Teams Link *</label>
+                    <label>Meeting Link *</label>
                     <input type="url" id="meetingLink"
-                           placeholder="https://teams.microsoft.com/l/meetup-join/...">
+                           placeholder="https://zoom.us/j/... or https://meet.google.com/... or any video call link">
                     <div style="font-size:11px;color:var(--muted);margin-top:4px;">
-                        Create a meeting in Teams and paste the join link here
+                        Paste any video call link (Zoom, Teams, Google Meet, etc.)
                     </div>
                 </div>
             </div>
@@ -407,6 +407,21 @@
         return res;
     }
 
+    // ── Pending assessment redirect (learner) ─────────────────────
+    async function checkPendingAssessment() {
+        try {
+            const res = await authFetch('/api/sessions/me/pending-assessment');
+            if (res.status === 200) {
+                const data = await res.json();
+                if (data && data.skillId) {
+                    window.location.href = `/assessment.html?skillId=${encodeURIComponent(data.skillId)}&skillName=${encodeURIComponent(data.skillName || 'Skill')}&fromSession=true`;
+                    return true;
+                }
+            }
+        } catch(e) { /* non-blocking */ }
+        return false;
+    }
+
     // ── Init ─────────────────────────────────────────────────────
     async function init() {
         if (!getToken()) { window.location.href = '/login.html'; return; }
@@ -425,6 +440,7 @@
                 if (res.ok) { const u = await res.json(); currentUserEmail = u.email || null; }
             } catch(e) { /* continue without email */ }
         }
+        if (await checkPendingAssessment()) return;
         await Promise.all([loadAvailableSessions(), loadMySkills()]);
     }
 
@@ -573,9 +589,9 @@
 
         const modeSection = isOnline
             ? `<div style="background:#eef2ff;border-radius:10px;padding:14px;margin-bottom:14px;">
-                   <strong style="color:#4f46e5;">💻 Online Session via Microsoft Teams</strong>
+                   <strong style="color:#4f46e5;">💻 Online Session</strong>
                    <p style="font-size:13px;color:var(--muted);margin:6px 0 0;">
-                       A Teams link will be included in your confirmation email after joining.
+                       A meeting link will be included in your confirmation email after joining.
                    </p>
                </div>`
             : `<div style="background:#f0fdf4;border-radius:10px;padding:14px;margin-bottom:14px;">
@@ -723,7 +739,7 @@
 
         if (!skillId) { showError(alertEl, 'Please select a skill.'); return; }
         if (!scheduledTime) { showError(alertEl, 'Please set a date and time.'); return; }
-        if (currentMode === 'ONLINE' && !meetingLink) { showError(alertEl, 'Please add your Teams meeting link.'); return; }
+        if (currentMode === 'ONLINE' && !meetingLink) { showError(alertEl, 'Please add a meeting link for the online session.'); return; }
         if (currentMode === 'IN_PERSON' && !location) { showError(alertEl, 'Please enter the session location.'); return; }
 
         const btn = document.getElementById('createBtn');

@@ -2,6 +2,7 @@ package config;
 
 import security.AuthEntryPointJwt;
 import security.AuthTokenFilter;
+import security.RateLimitFilter;
 import security.jwt.JwtUtils;
 import service.MyUserDetailsService;
 import org.springframework.context.annotation.Bean;
@@ -30,13 +31,16 @@ public class SecurityConfig {
 	private final MyUserDetailsService userDetailsService;
 	private final AuthEntryPointJwt unauthorizedHandler;
 	private final JwtUtils jwtUtils;
+	private final RateLimitConfig rateLimitConfig;
 
 	public SecurityConfig(MyUserDetailsService userDetailsService,
 			AuthEntryPointJwt unauthorizedHandler,
-			JwtUtils jwtUtils) {
+			JwtUtils jwtUtils,
+			RateLimitConfig rateLimitConfig) {
 		this.userDetailsService = userDetailsService;
 		this.unauthorizedHandler = unauthorizedHandler;
 		this.jwtUtils = jwtUtils;
+		this.rateLimitConfig = rateLimitConfig;
 	}
 
 	@Bean
@@ -54,6 +58,10 @@ public class SecurityConfig {
 		return new AuthTokenFilter(jwtUtils, userDetailsService);
 	}
 
+	private RateLimitFilter rateLimitFilter() {
+		return new RateLimitFilter(rateLimitConfig);
+	}
+
 	@Bean
 	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 		return http
@@ -65,9 +73,16 @@ public class SecurityConfig {
 						.requestMatchers(
 							    // All static HTML pages — auth enforced client-side via JWT in localStorage
 							    "/*.html", "/", "/error", "/favicon.ico",
-							    // Static assets
-							    "/js/**", "/css/**", "/images/**", "/static/**", "/webjars/**",
-							    "/uploads/**", "/default-logo.png",
+							    // Static assets — /*.css covers root-level CSS files like /sponsor.css
+							    // (browsers don't send Authorization headers on <link>/<script> requests,
+							    // so any CSS/JS served from a non-permitAll path renders unauthenticated pages broken)
+							    "/js/**", "/css/**", "/*.css", "/images/**", "/static/**", "/webjars/**",
+							    "/uploads/**", "/default-logo.png","/sponsor-coupons",
+							    "/sponsor-dashboard",
+							    "/sponsor-profile",
+							    "/sponsor-reports",
+							    "/sponsor-sponsorships",
+							    "/sponsor-talent",
 							    // Public API endpoints
 							    "/api/auth/**",
 							    "/api/reviews/**",
@@ -77,12 +92,15 @@ public class SecurityConfig {
 							    "/api/verify-otp",
 							    "/api/request-otp",
 							    "/api/seo/**",
-							    "/api/skills/**"
+							    "/api/skills/**",
+							    "/api/stripe/webhook"
 							).permitAll().requestMatchers("/api/users/delete/**").authenticated()
 						.requestMatchers("/api/browse/**").authenticated()
 						.requestMatchers("/api/admin/**").hasAuthority("ADMIN")
 						.anyRequest().authenticated()
 						)
+				// Rate limiting runs first — abusive requests rejected before JWT/DB work
+				.addFilterBefore(rateLimitFilter(), UsernamePasswordAuthenticationFilter.class)
 				.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class)
 				.build();
 	}
