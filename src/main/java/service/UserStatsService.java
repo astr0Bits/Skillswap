@@ -1,5 +1,5 @@
 // service/UserStatsService.java
-package service;
+package src.main.java.service;
 
 import dto.UserStatsDTO;
 import model.Session;

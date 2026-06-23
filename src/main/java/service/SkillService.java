@@ -1,4 +1,4 @@
-package service;
+package src.main.java.service;
 
 import model.Skill;
 import repository.SkillRepository;

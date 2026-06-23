@@ -1,5 +1,5 @@
 // service/UserPreferencesService.java
-package service;
+package src.main.java.service;
 
 import dto.UserPreferencesDTO;
 import model.User;

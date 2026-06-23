@@ -1,5 +1,5 @@
 // service/UserSkillService.java
-package service;
+package src.main.java.service;
 
 import dto.UserSkillDTO;
 import model.*;

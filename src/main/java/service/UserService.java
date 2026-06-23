@@ -1,4 +1,4 @@
-package service;
+package src.main.java.service;
 /*Encapsulates business logic for user profile updates. 
  * It ensures data consistency (email uniqueness, password encoding) 
  * and uses the repository for persistence.
