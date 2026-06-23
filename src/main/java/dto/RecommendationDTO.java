@@ -1,5 +1,5 @@
 // dto/RecommendationDTO.java
-package dto;
+package src.main.java.dto;
 
 public class RecommendationDTO {
     private String skillName;

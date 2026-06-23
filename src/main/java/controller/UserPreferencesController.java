@@ -1,5 +1,5 @@
 // controller/UserPreferencesController.java
-package controller;
+package src.main.java.controller;
 
 import dto.UserPreferencesDTO;
 import model.User;

@@ -1,4 +1,4 @@
-package model;
+package src.main.java.model;
 
 import enums.BadgeCriteriaType;
 import jakarta.persistence.*;

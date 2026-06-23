@@ -1,10 +1,10 @@
-package controller;
+package src.main.java.controller;
 
 import com.stripe.exception.StripeException;
 import com.stripe.model.checkout.Session;
 import com.stripe.net.RequestOptions;
 import com.stripe.param.checkout.SessionCreateParams;
-import exception.ResourceNotFoundException;
+
 import model.SponsorProgram;
 import model.User;
 import org.slf4j.Logger;
@@ -17,6 +17,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import repository.UserRepository;
 import service.SponsorService;
+import src.main.java.exception.ResourceNotFoundException;
 
 import java.math.BigDecimal;
 import java.util.List;

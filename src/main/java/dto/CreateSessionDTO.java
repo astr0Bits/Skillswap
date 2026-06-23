@@ -1,4 +1,4 @@
-package dto;
+package src.main.java.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import java.time.LocalDateTime;

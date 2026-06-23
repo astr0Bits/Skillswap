@@ -1,4 +1,4 @@
-package config;
+package src.main.java.config;
 
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;

@@ -1,4 +1,4 @@
-package controller;
+package src.main.java.controller;
 
 import model.User;
 import repository.UserRepository;

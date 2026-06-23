@@ -1,5 +1,5 @@
 // SessionType.java
-package enums;
+package src.main.java.enums;
 
 public enum SessionType {
     ONLINE, OFFLINE

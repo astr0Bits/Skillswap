@@ -1,5 +1,5 @@
 // controller/UserStatsController.java
-package controller;
+package src.main.java.controller;
 
 import dto.UserStatsDTO;
 import model.User;

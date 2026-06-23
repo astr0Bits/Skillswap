@@ -55,8 +55,7 @@ body::before {
 	animation: slideDown 0.5s ease forwards;
 }
 
-@
-keyframes slideDown {from { transform:translateY(-100%);
+@keyframes slideDown {from { transform:translateY(-100%);
 	opacity: 0;
 }
 
@@ -206,8 +205,7 @@ to {
 	animation: fadeUp 0.5s ease 0.1s both;
 }
 
-@
-keyframes fadeUp {from { opacity:0;
+@keyframes fadeUp {from { opacity:0;
 	transform: translateY(20px);
 }
 
@@ -436,8 +434,7 @@ to {
 	display: none;
 }
 
-@
-keyframes spin {to { transform:rotate(360deg);
+@keyframes spin {to { transform:rotate(360deg);
 	
 }
 
@@ -470,8 +467,7 @@ keyframes spin {to { transform:rotate(360deg);
 	animation: alertIn 0.25s ease both;
 }
 
-@
-keyframes alertIn {from { opacity:0;
+@keyframes alertIn {from { opacity:0;
 	transform: translateY(-6px);
 }
 
@@ -743,6 +739,11 @@ to {
         info:    '<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>',
     };
 
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
+    }
+
     // ─── ALERT SYSTEM ───
     function showAlert(type, title, detail = '', linkText = '', linkHref = '') {
         const box   = document.getElementById('alertBox');
@@ -758,7 +759,7 @@ to {
 
         // Detail with optional inline link
         if (linkText && linkHref) {
-            dtl.innerHTML = detail + ' <a class="alert-link" href="' + linkHref + '">' + linkText + '</a>';
+            dtl.innerHTML = escapeHtml(detail) + ' <a class="alert-link" href="' + linkHref + '">' + escapeHtml(linkText) + '</a>';
         } else {
             dtl.textContent = detail;
         }

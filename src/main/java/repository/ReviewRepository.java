@@ -1,4 +1,4 @@
-package repository;
+package src.main.java.repository;
 
 import model.Review;
 import model.Session;

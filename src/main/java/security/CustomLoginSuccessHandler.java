@@ -1,4 +1,4 @@
-package security;
+package src.main.java.security;
 /*A Spring bean that handles what happens after a successful form-based login 
  * It redirects users to different pages based on their role.*/
 import jakarta.servlet.ServletException;

@@ -1,4 +1,4 @@
-package model;
+package src.main.java.model;
 /*A DTO used in the OTP verification flow 
  * (e.g., during password reset or MFA). 
  * The frontend sends an email and OTP to 

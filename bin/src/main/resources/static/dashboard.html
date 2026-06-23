@@ -138,26 +138,6 @@
             letter-spacing: -0.3px;
         }
         .topbar-right { display: flex; align-items: center; gap: 14px; }
-        .notif-btn {
-            width: 38px; height: 38px;
-            border-radius: 9px;
-            border: 1px solid var(--border);
-            background: white;
-            display: flex; align-items: center; justify-content: center;
-            color: var(--muted);
-            cursor: pointer;
-            position: relative;
-            transition: all 0.2s;
-        }
-        .notif-btn:hover { border-color: #c7d2fe; color: var(--indigo); }
-        .notif-dot {
-            width: 8px; height: 8px;
-            background: var(--rose);
-            border-radius: 50%;
-            position: absolute;
-            top: 7px; right: 7px;
-            border: 1.5px solid white;
-        }
         .page {
             padding: 32px;
             flex: 1;
@@ -510,55 +490,6 @@
         }
         .history-pts.earned { color: var(--green); }
         .history-pts.spent  { color: var(--rose); }
-        .notif-panel {
-            display: none;
-            position: fixed;
-            top: 64px; right: 20px;
-            width: 340px;
-            background: white;
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            box-shadow: 0 16px 48px rgba(0,0,0,0.12);
-            z-index: 200;
-            overflow: hidden;
-            animation: fadeSlideDown 0.2s ease forwards;
-        }
-        @keyframes fadeSlideDown {
-            from { opacity:0; transform:translateY(-8px); }
-            to   { opacity:1; transform:translateY(0); }
-        }
-        .notif-panel.open { display: block; }
-        .notif-panel-head {
-            padding: 16px 18px 12px;
-            border-bottom: 1px solid var(--border);
-            display: flex; justify-content: space-between;
-            align-items: center;
-        }
-        .notif-panel-head h4 { font-size: 0.95rem; font-weight: 600; }
-        .notif-mark-read {
-            font-size: 0.78rem; color: var(--indigo);
-            cursor: pointer; background: none; border: none;
-            font-family: inherit; font-weight: 500;
-        }
-        .notif-panel-body { max-height: 340px; overflow-y: auto; }
-        .notif-entry {
-            display: flex; align-items: flex-start; gap: 11px;
-            padding: 13px 18px;
-            border-bottom: 1px solid var(--border);
-            transition: background 0.15s;
-        }
-        .notif-entry:last-child { border-bottom: none; }
-        .notif-entry:hover { background: var(--bg); }
-        .notif-entry.unread { background: #f0f4ff; }
-        .notif-dot-entry {
-            width: 8px; height: 8px; border-radius: 50%;
-            background: var(--indigo); flex-shrink: 0; margin-top: 6px;
-        }
-        .notif-entry.read .notif-dot-entry { background: transparent; }
-        .notif-entry-text { font-size: 0.82rem; line-height: 1.5; }
-        .notif-entry-text strong { font-weight: 600; }
-        .notif-entry-time { font-size: 0.72rem; color: var(--muted); margin-top: 3px; }
-        .notif-empty { padding: 28px; text-align: center; color: var(--muted); font-size: 0.85rem; }
         .role-tabs {
             display: inline-flex;
             background: var(--indigo-light);
@@ -623,12 +554,6 @@
             </svg>
             <span>Profile</span>
         </a>
-        <a href="chat.html" class="nav-link">
-            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-            </svg>
-            <span>Messages</span>
-        </a>
         <p class="nav-label">Discover</p>
         <a href="ai-matching.html" class="nav-link">
             <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -653,8 +578,8 @@
     <div class="sidebar-user">
         <div class="user-avatar-sm" id="avatarInitial">S</div>
         <div class="user-details">
-            <h4 id="userName">Sarah</h4>
-            <p id="userRole">Learner</p>
+            <h4 id="userName">...</h4>
+            <p id="userRole">Learner & Mentor</p>
         </div>
         <button class="logout-btn" id="logoutBtn" title="Log out">
             <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -667,12 +592,6 @@
 <div class="main">
     <header class="topbar">
         <span class="topbar-title">SkillSwap UAE</span>
-        <div class="topbar-right">
-            <button class="notif-btn" id="notifBtn">
-                <i class="fas fa-bell"></i>
-                <span class="notif-dot" id="notifDot" style="display:none;"></span>
-            </button>
-        </div>
     </header>
 
     <div class="page">
@@ -684,12 +603,12 @@
         <div class="credits-banner">
             <div class="credits-left">
                 <h2><i class="fas fa-coins" style="font-size:1.6rem;margin-right:10px;opacity:0.9;"></i><span id="creditsBalance">0</span> Credits</h2>
-                <p>1 credit = 1 hour of learning &nbsp;·&nbsp; Earn by teaching</p>
-            </div>
+            </div>            
             <div class="credits-actions">
                 <button class="btn btn-white" id="creditUseBtn"><i class="fas fa-plus"></i> Use Credits</button>
                 <button class="btn btn-ghost" onclick="window.location.href='browse-skills.html'"><i class="fas fa-search"></i> Browse Skills</button>
             </div>
+
         </div>
 
         <div class="role-tabs" id="roleTabs">
@@ -702,10 +621,6 @@
         <!-- LEARNER VIEW -->
         <div id="viewLearner" class="dashboard-grid">
             <div>
-                <div id="pendingRequestsCard" class="card" style="display:none;">
-                    <div class="card-head"><h3><i class="fas fa-clock"></i> Pending Session Requests</h3></div>
-                    <div id="pendingRequestsContainer"></div>
-                </div>
                 <div class="card">
                     <div class="card-head"><h3><i class="fas fa-calendar-alt"></i> Upcoming & Scheduled Sessions</h3><a href="#" id="viewAllSessionsLink">View all</a></div>
                     <div id="upcomingSessionsContainer"></div>
@@ -730,7 +645,7 @@
             </div>
             <div>
                 <div class="card">
-                    <div class="card-head"><h3><i class="fas fa-medal"></i> Badges & Rewards</h3><a href="#">View all</a></div>
+                    <div class="card-head"><h3><i class="fas fa-medal"></i> Badges & Rewards</h3><a href="badges.html">View All Badges →</a></div>
                     <div class="badges-grid" id="badgesGrid"></div>
                     <div class="next-badge-hint" id="nextBadgeHint" style="display:none;"></div>
                 </div>
@@ -749,12 +664,60 @@
             <div class="dashboard-grid">
                 <div>
                     <div class="card">
-                        <div class="card-head"><h3><i class="fas fa-clock"></i> Pending Session Requests</h3><span id="pendingBadge" style="background:var(--rose);color:white;font-size:0.72rem;padding:2px 8px;border-radius:20px;"></span></div>
-                        <div id="pendingRequestsContainer2"></div>
-                    </div>
-                    <div class="card">
                         <div class="card-head"><h3><i class="fas fa-calendar-alt"></i> My Upcoming Sessions</h3></div>
                         <div id="mentorUpcomingContainer"></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-head"><h3><i class="fas fa-plus-circle"></i> Create a Session</h3></div>
+                        <div id="createSessionMsg" style="display:none;margin-bottom:12px;padding:10px 14px;border-radius:8px;font-size:13px;"></div>
+                        <div class="form-group" style="margin-bottom:12px;">
+                            <label style="font-size:13px;font-weight:500;color:var(--muted);display:block;margin-bottom:4px;">Skill</label>
+                            <select id="createSkillSelect" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;"></select>
+                        </div>
+                        <div class="form-group" style="margin-bottom:12px;">
+                            <label style="font-size:13px;font-weight:500;color:var(--muted);display:block;margin-bottom:4px;">Date &amp; Time</label>
+                            <input type="datetime-local" id="createScheduledTime" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;">
+                        </div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+                            <div>
+                                <label style="font-size:13px;font-weight:500;color:var(--muted);display:block;margin-bottom:4px;">Duration (mins)</label>
+                                <input type="number" id="createDuration" value="60" min="15" max="480" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;">
+                            </div>
+                            <div>
+                                <label style="font-size:13px;font-weight:500;color:var(--muted);display:block;margin-bottom:4px;">Max Learners</label>
+                                <input type="number" id="createMaxLearners" value="1" min="1" max="50" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;">
+                            </div>
+                        </div>
+                        <div style="margin-bottom:12px;">
+                            <label style="font-size:13px;font-weight:500;color:var(--muted);display:block;margin-bottom:6px;">Mode</label>
+                            <div style="display:flex;gap:16px;">
+                                <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;">
+                                    <input type="radio" name="createMode" value="ONLINE" checked id="createModeOnline"> Online
+                                </label>
+                                <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;">
+                                    <input type="radio" name="createMode" value="IN_PERSON" id="createModeInPerson"> In-Person
+                                </label>
+                            </div>
+                        </div>
+                        <div id="createMeetingLinkGroup" style="margin-bottom:12px;">
+                            <label style="font-size:13px;font-weight:500;color:var(--muted);display:block;margin-bottom:4px;">Meeting Link</label>
+                            <input type="url" id="createMeetingLink" placeholder="https://zoom.us/j/... or https://meet.google.com/... or any video call link" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;">
+                        </div>
+                        <div id="createPhysicalLocationGroup" style="display:none;margin-bottom:12px;">
+                            <label style="font-size:13px;font-weight:500;color:var(--muted);display:block;margin-bottom:4px;">Physical Location</label>
+                            <input type="text" id="createPhysicalLocation" placeholder="Building, room, or address" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;">
+                        </div>
+                        <div style="margin-bottom:12px;">
+                            <label style="font-size:13px;font-weight:500;color:var(--muted);display:block;margin-bottom:4px;">Description (optional)</label>
+                            <textarea id="createDescription" rows="2" placeholder="What will learners gain from this session?" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;resize:vertical;"></textarea>
+                        </div>
+                        <button class="btn btn-primary btn-block" id="submitCreateSession" style="margin-top:4px;">
+                            <i class="fas fa-paper-plane"></i> Publish Session
+                        </button>
+                    </div>
+                    <div class="card">
+                        <div class="card-head"><h3><i class="fas fa-list-alt"></i> My Created Sessions</h3></div>
+                        <div id="mentorCreatedSessionsContainer"><p style="color:var(--muted);text-align:center;padding:16px;">Loading...</p></div>
                     </div>
                 </div>
                 <div>
@@ -768,8 +731,12 @@
                         <div id="earningsBarsContainer"></div>
                     </div>
                     <div class="card">
-                        <div class="card-head"><h3><i class="fas fa-medal"></i> My Badges</h3></div>
+                        <div class="card-head"><h3><i class="fas fa-medal"></i> My Badges</h3><a href="badges.html">View All Badges →</a></div>
                         <div class="badges-grid" id="mentorBadgesGrid"></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-head"><h3><i class="fas fa-star"></i> My Reviews</h3><a href="/reviews-received.html">View All Reviews →</a></div>
+                        <p style="font-size:13px;color:var(--muted);padding:8px 0;">See the feedback learners have left for you.</p>
                     </div>
                 </div>
             </div>
@@ -777,10 +744,6 @@
     </div>
 </div>
 
-<div class="notif-panel" id="notifPanel">
-    <div class="notif-panel-head"><h4><i class="fas fa-bell"></i> Notifications</h4><button class="notif-mark-read" id="markAllReadBtn">Mark all read</button></div>
-    <div class="notif-panel-body" id="notifPanelBody"><div class="notif-empty">No notifications yet.</div></div>
-</div>
 
 <div id="requestModal" class="modal">
     <div class="modal-content">
@@ -789,7 +752,7 @@
         <div class="form-group"><label>Skill</label><select id="skillSelect"></select></div>
         <div class="form-group"><label>Scheduled Time</label><input type="datetime-local" id="scheduledTime"></div>
         <div class="form-group"><label>Duration (minutes)</label><input type="number" id="duration" value="60"></div>
-        <div class="form-group"><label>Mode</label><select id="mode"><option value="ONLINE">Online (Zoom)</option><option value="IN_PERSON">In-person</option></select></div>
+        <div class="form-group"><label>Mode</label><select id="mode"><option value="ONLINE">Online</option><option value="IN_PERSON">In-person</option></select></div>
         <div class="form-group"><label>Location</label><input type="text" id="location" placeholder="Address or meeting link"></div>
         <div style="display:flex; gap:12px; justify-content:flex-end;"><button class="btn btn-outline" id="closeModalBtn">Cancel</button><button class="btn btn-primary" id="confirmRequestBtn">Submit</button></div>
     </div>
@@ -813,7 +776,6 @@
     let userProfile = { name: '', email: '', role: '', credits: 0 };
     let userStats = { points: 0, totalSessions: 0, upcomingSessions: 0, reputation: 0, credits: 0 };
     let upcomingSessions = [];
-    let pendingSessions = [];
     let sessionHistory = [];
     let userSkills = { teach: [], learn: [] };
     let reviews = [];
@@ -822,7 +784,7 @@
     let skillsList = [];
     let badgesData = [];
     let earningsData = null;
-    let notificationsData = [];
+    let mentorCreatedSessions = [];
 
     const viewLearner = document.getElementById('viewLearner');
     const viewMentor = document.getElementById('viewMentor');
@@ -836,14 +798,16 @@
         });
     });
 
-    const notifPanel = document.getElementById('notifPanel');
-    document.getElementById('notifBtn').addEventListener('click', (e) => {
-        e.stopPropagation();
-        notifPanel.classList.toggle('open');
-        if (notifPanel.classList.contains('open')) renderNotificationsPanel();
-    });
-    document.addEventListener('click', (e) => { if (!notifPanel.contains(e.target)) notifPanel.classList.remove('open'); });
-    document.getElementById('markAllReadBtn').addEventListener('click', () => alert('Mark all read feature coming soon'));
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
+    }
+
+    function safeUrl(url) {
+        if (!url) return '';
+        return (url.startsWith('https://') || url.startsWith('http://')) ? url : '#';
+    }
 
     async function loadDashboard() {
         try {
@@ -862,17 +826,10 @@
             reviews = revs || [];
             recommendations = recs || [];
 
-            if (userSkills.teach && userSkills.teach.length > 0) {
-                try { pendingSessions = await apiRequest('/sessions/mentor/pending'); } catch(e) { pendingSessions = []; }
-                document.getElementById('pendingRequestsCard').style.display = 'block';
-            } else {
-                document.getElementById('pendingRequestsCard').style.display = 'none';
-            }
-
             try { sessionHistory = await apiRequest('/sessions/me/history'); } catch(e) { sessionHistory = []; }
+            try { mentorCreatedSessions = await apiRequest('/public-sessions/my-sessions'); } catch(e) { mentorCreatedSessions = []; }
             try { badgesData = await apiRequest('/users/me/badges'); } catch(e) { badgesData = []; }
             try { earningsData = await apiRequest('/users/me/earnings'); } catch(e) { earningsData = null; }
-            try { notificationsData = await apiRequest('/notifications/me'); } catch(e) { notificationsData = []; }
 
             renderDashboard();
             await loadMentorsAndSkills();
@@ -894,14 +851,22 @@
         const mentorSelect = document.getElementById('mentorSelect');
         mentorSelect.innerHTML = '<option value="">-- Select a mentor --</option>';
         (mentorsList || []).forEach(m => {
-            const skillsStr = (m.skills || []).map(s => s.name).join(', ');
-            mentorSelect.innerHTML += `<option value="${m.id}">${m.name} (${skillsStr})</option>`;
+            const skillsStr = (m.skills || []).map(s => escapeHtml(s.name)).join(', ');
+            mentorSelect.innerHTML += `<option value="${m.id}">${escapeHtml(m.name)} (${skillsStr})</option>`;
         });
         const skillSelect = document.getElementById('skillSelect');
         skillSelect.innerHTML = '<option value="">-- Select a skill --</option>';
         (skillsList || []).forEach(s => {
-            skillSelect.innerHTML += `<option value="${s.id}">${s.name} (${s.category || ''})</option>`;
+            skillSelect.innerHTML += `<option value="${s.id}">${escapeHtml(s.name)} (${escapeHtml(s.category || '')})</option>`;
         });
+        // Re-populate the mentor create-session skill dropdown now that skillsList is loaded
+        const createSel = document.getElementById('createSkillSelect');
+        if (createSel) {
+            createSel.innerHTML = '<option value="">-- Select a skill --</option>';
+            (skillsList || []).forEach(s => {
+                createSel.innerHTML += `<option value="${s.id}">${escapeHtml(s.name)}${s.category ? ' (' + escapeHtml(s.category) + ')' : ''}</option>`;
+            });
+        }
     }
 
     function renderDashboard() {
@@ -915,12 +880,11 @@
 
         const rating = ((userStats.reputation || 0) / 20).toFixed(1);
         document.getElementById('statsBar').innerHTML = `
-            <div class="stat-card"><div class="stat-icon si-indigo"><i class="fas fa-coins"></i></div><div class="stat-info"><h4>${userStats.points || 0}</h4><p>Points Balance</p></div></div>
+            <div class="stat-card"><div class="stat-icon si-indigo"><i class="fas fa-coins"></i></div><div class="stat-info"><h4>${credits}</h4><p>Credits</p></div></div>
             <div class="stat-card"><div class="stat-icon si-green"><i class="fas fa-calendar-check"></i></div><div class="stat-info"><h4>${userStats.upcomingSessions || 0}</h4><p>Upcoming Sessions</p></div></div>
             <div class="stat-card"><div class="stat-icon si-amber"><i class="fas fa-star"></i></div><div class="stat-info"><h4>${rating}</h4><p>Reputation Score</p></div></div>
             <div class="stat-card"><div class="stat-icon si-purple"><i class="fas fa-tools"></i></div><div class="stat-info"><h4>${(userSkills.teach?.length || 0) + (userSkills.learn?.length || 0)}</h4><p>Skills Showcased</p></div></div>`;
 
-        renderPendingSessions('pendingRequestsContainer', pendingSessions);
         renderUpcomingSessions();
         renderSkillsShowcase();
         renderSessionHistory();
@@ -928,25 +892,6 @@
         renderRecommendations();
         renderReviews();
         renderMentorView();
-        const unread = (notificationsData || []).filter(n => !n.read);
-        document.getElementById('notifDot').style.display = unread.length > 0 ? 'block' : 'none';
-    }
-
-    function renderPendingSessions(containerId, sessions) {
-        const el = document.getElementById(containerId);
-        if (!el) return;
-        if (!sessions || sessions.length === 0) {
-            el.innerHTML = '<div style="padding:16px;text-align:center;color:var(--muted);">No pending requests.</div>';
-            return;
-        }
-        el.innerHTML = sessions.map(s => `
-            <div class="session-item">
-                <div class="session-row"><span class="session-title">${s.skillName || ''}</span><span class="session-date">${new Date(s.scheduledTime).toLocaleString()}</span></div>
-                <div class="session-meta"><span class="meta-item"><i class="fas fa-user"></i> ${s.learnerName || ''}</span><span class="meta-item"><i class="fas fa-clock"></i> ${s.durationMinutes} min</span><span class="meta-item"><i class="fas ${s.mode === 'ONLINE' ? 'fa-video' : 'fa-map-marker-alt'}"></i> ${s.mode === 'ONLINE' ? 'Online' : 'In-person'}</span></div>
-                <div class="session-actions"><button class="btn btn-green accept-session" data-id="${s.id}">Accept</button><button class="btn btn-danger reject-session" data-id="${s.id}">Reject</button></div>
-            </div>`).join('');
-        el.querySelectorAll('.accept-session').forEach(btn => btn.addEventListener('click', () => acceptSession(btn.dataset.id)));
-        el.querySelectorAll('.reject-session').forEach(btn => btn.addEventListener('click', () => rejectSession(btn.dataset.id)));
     }
 
     function renderUpcomingSessions() {
@@ -955,20 +900,72 @@
             sessEl.innerHTML = '<div style="padding:16px;text-align:center;color:var(--muted);">✨ No upcoming sessions. Request one!</div>';
             return;
         }
-        sessEl.innerHTML = upcomingSessions.map(s => `
-            <div class="session-item">
-                <div class="session-row"><span class="session-title">${s.skillName || ''}</span><span class="session-date">${new Date(s.scheduledTime).toLocaleString()}</span></div>
-                <div class="session-meta"><span class="meta-item"><i class="fas fa-user"></i> ${s.mentorName || s.learnerName || ''}</span><span class="meta-item"><i class="fas fa-clock"></i> ${s.durationMinutes} min</span><span class="meta-item"><i class="fas ${s.mode === 'ONLINE' ? 'fa-video' : 'fa-map-marker-alt'}"></i> ${s.mode === 'ONLINE' ? 'Online' : 'In-person'}</span></div>
-                ${s.meetingLink ? `<div class="meeting-link"><a href="${s.meetingLink}" target="_blank">Join Zoom Meeting</a></div>` : ''}
-                <div class="session-actions"><button class="btn btn-outline complete-session" data-id="${s.id}">Complete</button><button class="btn btn-danger cancel-session" data-id="${s.id}">Cancel</button></div>
-            </div>`).join('');
+        sessEl.innerHTML = upcomingSessions.map(s => {
+            const isOnline = s.mode === 'ONLINE';
+            const link = s.meetingLink || '';
+            const _lc = link.toLowerCase();
+            const platform = _lc.includes('zoom.us') ? 'Zoom' : _lc.includes('teams.microsoft.com') ? 'Teams' : _lc.includes('meet.google.com') ? 'Meet' : 'Online';
+            const badgeColor = _lc.includes('zoom.us') ? '#0b5cff' : _lc.includes('teams.microsoft.com') ? '#464eb8' : '#4f46e5';
+            const physLoc = s.physicalLocation || '';
+
+            const joinBlock = isOnline
+                ? (link
+                    ? `<div style="display:flex;gap:8px;align-items:center;margin:8px 0 4px;flex-wrap:wrap;">
+                         <span style="background:${badgeColor};color:white;font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;">${platform}</span>
+                         <a href="${safeUrl(link)}" target="_blank" class="btn btn-primary" style="padding:5px 14px;font-size:12px;text-decoration:none;">
+                           <i class="fas fa-video"></i> Join Session
+                         </a>
+                         <button class="btn btn-outline copy-link-btn" data-link="${escapeHtml(link)}" style="padding:5px 12px;font-size:12px;">
+                           <i class="fas fa-copy"></i> <span class="copy-label">Copy Link</span>
+                         </button>
+                       </div>`
+                    : `<p style="font-size:12px;color:var(--muted);margin:6px 0;">Meeting link will be provided by mentor.</p>`)
+                : (physLoc
+                    ? `<div style="display:flex;gap:8px;align-items:center;margin:8px 0 4px;flex-wrap:wrap;">
+                         <span style="background:#fef3c7;color:#92400e;font-size:12px;font-weight:500;padding:3px 10px;border-radius:6px;">
+                           📍 ${escapeHtml(physLoc)}
+                         </span>
+                         <button class="btn btn-outline copy-addr-btn" data-addr="${escapeHtml(physLoc)}" style="padding:5px 12px;font-size:12px;">
+                           <i class="fas fa-copy"></i> <span class="copy-label">Copy Address</span>
+                         </button>
+                       </div>`
+                    : '');
+
+            return `<div class="session-item">
+                <div class="session-row"><span class="session-title">${escapeHtml(s.skillName || '')}</span><span class="session-date">${new Date(s.scheduledTime).toLocaleString()}</span></div>
+                <div class="session-meta">
+                    <span class="meta-item"><i class="fas fa-user"></i> ${escapeHtml(s.mentorName || s.learnerName || '')}</span>
+                    <span class="meta-item"><i class="fas fa-clock"></i> ${s.durationMinutes || 60} min</span>
+                    <span class="meta-item"><i class="fas ${isOnline ? 'fa-video' : 'fa-map-marker-alt'}"></i> ${isOnline ? 'Online' : 'In-person'}</span>
+                </div>
+                ${joinBlock}
+                <div class="session-actions">
+                    <button class="btn btn-outline complete-session" data-id="${s.id}">Complete</button>
+                    <button class="btn btn-danger cancel-session" data-id="${s.id}">Cancel</button>
+                </div>
+            </div>`;
+        }).join('');
         sessEl.querySelectorAll('.complete-session').forEach(btn => btn.addEventListener('click', () => completeSession(btn.dataset.id)));
         sessEl.querySelectorAll('.cancel-session').forEach(btn => btn.addEventListener('click', () => cancelSession(btn.dataset.id)));
+        sessEl.querySelectorAll('.copy-link-btn').forEach(btn => btn.addEventListener('click', () => {
+            navigator.clipboard.writeText(btn.dataset.link).then(() => {
+                const lbl = btn.querySelector('.copy-label');
+                lbl.textContent = 'Copied!';
+                setTimeout(() => { lbl.textContent = 'Copy Link'; }, 2000);
+            });
+        }));
+        sessEl.querySelectorAll('.copy-addr-btn').forEach(btn => btn.addEventListener('click', () => {
+            navigator.clipboard.writeText(btn.dataset.addr).then(() => {
+                const lbl = btn.querySelector('.copy-label');
+                lbl.textContent = 'Copied!';
+                setTimeout(() => { lbl.textContent = 'Copy Address'; }, 2000);
+            });
+        }));
     }
 
     function renderSkillsShowcase() {
-        const teachTags = (userSkills.teach || []).map(s => `<span class="stag stag-teach"><i class="fas fa-chalkboard-teacher"></i> ${s.skillName}</span>`).join('');
-        const learnTags = (userSkills.learn || []).map(s => `<span class="stag stag-learn"><i class="fas fa-graduation-cap"></i> ${s.skillName}</span>`).join('');
+        const teachTags = (userSkills.teach || []).map(s => `<span class="stag stag-teach"><i class="fas fa-chalkboard-teacher"></i> ${escapeHtml(s.skillName)}</span>`).join('');
+        const learnTags = (userSkills.learn || []).map(s => `<span class="stag stag-learn"><i class="fas fa-graduation-cap"></i> ${escapeHtml(s.skillName)}</span>`).join('');
         document.getElementById('skillsContainer').innerHTML = `<div class="skill-tags">${teachTags} ${learnTags}</div>`;
     }
 
@@ -981,7 +978,7 @@
         el.innerHTML = sessionHistory.slice(0,5).map(s => `
             <div class="history-item">
                 <div class="history-icon hi-completed"><i class="fas fa-check"></i></div>
-                <div class="history-info"><h4>${s.skillName}</h4><p>${s.mentorName || s.learnerName || ''} · ${new Date(s.scheduledTime).toLocaleDateString()}</p></div>
+                <div class="history-info"><h4>${escapeHtml(s.skillName)}</h4><p>${escapeHtml(s.mentorName || s.learnerName || '')} · ${new Date(s.scheduledTime).toLocaleDateString()}</p></div>
                 <div class="history-pts earned">+15 pts</div>
             </div>`).join('');
     }
@@ -1018,7 +1015,7 @@
             recsEl.innerHTML = '<p style="color:var(--muted);">No recommendations yet.</p>';
             return;
         }
-        recsEl.innerHTML = recommendations.map(r => `<div class="rec-item"><div class="rec-icon"><i class="fas fa-code"></i></div><div class="rec-info"><h4>${r.skillName}</h4><p>${r.description || 'Recommended for you'}</p></div><div class="rec-match">${r.matchPercent}%</div></div>`).join('');
+        recsEl.innerHTML = recommendations.map(r => `<div class="rec-item"><div class="rec-icon"><i class="fas fa-code"></i></div><div class="rec-info"><h4>${escapeHtml(r.skillName)}</h4><p>${escapeHtml(r.description || 'Recommended for you')}</p></div><div class="rec-match">${r.matchPercent}%</div></div>`).join('');
     }
 
     function renderReviews() {
@@ -1027,16 +1024,53 @@
             revEl.innerHTML = '<p style="color:var(--muted);">No reviews yet.</p>';
             return;
         }
-        revEl.innerHTML = reviews.slice(0,3).map(r => `<div class="review-item"><div class="review-header"><div class="reviewer"><div class="reviewer-av">${(r.reviewerName?.[0] || 'U')}</div><span class="reviewer-name">${r.reviewerName}</span></div><span class="review-stars"><i class="fas fa-star"></i> ${r.rating}</span></div><p class="review-text">${r.comment || ''}</p></div>`).join('');
+        revEl.innerHTML = reviews.slice(0,3).map(r => `<div class="review-item"><div class="review-header"><div class="reviewer"><div class="reviewer-av">${escapeHtml(r.reviewerName?.[0] || 'U')}</div><span class="reviewer-name">${escapeHtml(r.reviewerName)}</span></div><span class="review-stars"><i class="fas fa-star"></i> ${r.rating}</span></div><p class="review-text">${escapeHtml(r.comment || '')}</p></div>`).join('');
     }
 
     function renderMentorView() {
-        renderPendingSessions('pendingRequestsContainer2', pendingSessions);
-        const badgeSpan = document.getElementById('pendingBadge');
-        if (badgeSpan) badgeSpan.innerText = pendingSessions.length || '';
         const muEl = document.getElementById('mentorUpcomingContainer');
-        if (!upcomingSessions.length) muEl.innerHTML = '<p style="color:var(--muted);text-align:center;padding:16px;">No upcoming sessions.</p>';
-        else muEl.innerHTML = upcomingSessions.map(s => `<div class="history-item"><div class="history-icon hi-completed"><i class="fas fa-calendar"></i></div><div class="history-info"><h4>${s.skillName}</h4><p>${s.learnerName || s.mentorName || ''} · ${new Date(s.scheduledTime).toLocaleString()}</p></div><span style="font-size:0.75rem;color:var(--indigo);">${s.mode === 'ONLINE' ? 'Online' : 'In-person'}</span></div>`).join('');
+        if (!upcomingSessions.length) {
+            muEl.innerHTML = '<p style="color:var(--muted);text-align:center;padding:16px;">No upcoming sessions.</p>';
+        } else {
+            muEl.innerHTML = upcomingSessions.map(s => {
+                const isOnline = s.mode === 'ONLINE';
+                const link = s.meetingLink || '';
+                const physLoc = s.physicalLocation || '';
+                const _lc = link.toLowerCase();
+                const platform = _lc.includes('zoom.us') ? 'Zoom' : _lc.includes('teams.microsoft.com') ? 'Teams' : _lc.includes('meet.google.com') ? 'Meet' : 'Online';
+                const linkOrLoc = isOnline
+                    ? (link
+                        ? `<span style="font-size:12px;color:var(--indigo);">${platform}</span>
+                           <a href="${safeUrl(link)}" target="_blank" style="font-size:11px;color:var(--indigo);margin-left:6px;word-break:break-all;">${escapeHtml(link.length > 40 ? link.slice(0,40)+'…' : link)}</a>
+                           <button class="btn btn-outline copy-mentor-link" data-val="${escapeHtml(link)}" style="padding:2px 8px;font-size:11px;margin-left:6px;">Copy</button>`
+                        : `<span style="font-size:12px;color:var(--muted);">No link set</span>`)
+                    : (physLoc
+                        ? `<span style="font-size:12px;">📍 ${escapeHtml(physLoc)}</span>
+                           <button class="btn btn-outline copy-mentor-link" data-val="${escapeHtml(physLoc)}" style="padding:2px 8px;font-size:11px;margin-left:6px;">Copy</button>`
+                        : `<span style="font-size:12px;color:var(--muted);">No location set</span>`);
+                const learners = `${s.currentLearners ?? 0}/${s.maxLearners ?? 1} learner${(s.maxLearners ?? 1) > 1 ? 's' : ''}`;
+                return `<div class="history-item">
+                    <div class="history-icon hi-completed"><i class="fas fa-calendar"></i></div>
+                    <div class="history-info" style="flex:1;">
+                        <h4>${escapeHtml(s.skillName || '')}</h4>
+                        <p>${new Date(s.scheduledTime).toLocaleString()}</p>
+                        <div style="margin-top:4px;display:flex;align-items:center;flex-wrap:wrap;gap:4px;">${linkOrLoc}</div>
+                    </div>
+                    <div style="text-align:right;font-size:12px;color:var(--muted);white-space:nowrap;">
+                        <div>${isOnline ? 'Online' : 'In-person'}</div>
+                        <div style="color:var(--indigo);margin-top:2px;">${learners}</div>
+                    </div>
+                </div>`;
+            }).join('');
+            muEl.querySelectorAll('.copy-mentor-link').forEach(btn => btn.addEventListener('click', () => {
+                navigator.clipboard.writeText(btn.dataset.val).then(() => {
+                    const orig = btn.textContent;
+                    btn.textContent = 'Copied!';
+                    setTimeout(() => { btn.textContent = orig; }, 2000);
+                });
+            }));
+        }
+        renderMentorCreatedSessions();
         const ed = earningsData || {};
         document.getElementById('totalEarned').innerText = ed.totalCreditsEarned ?? 0;
         document.getElementById('thisMonthEarned').innerText = ed.thisMonthCredits ?? '—';
@@ -1044,16 +1078,139 @@
         const barsEl = document.getElementById('earningsBarsContainer');
         barsEl.innerHTML = '<p style="color:var(--muted);">No earnings data yet.</p>';
         renderBadges('mentorBadgesGrid', null);
+        initCreateSessionForm();
     }
 
-    function renderNotificationsPanel() {
-        const body = document.getElementById('notifPanelBody');
-        if (!notificationsData.length) {
-            body.innerHTML = '<div class="notif-empty">No notifications yet.</div>';
+    function renderMentorCreatedSessions() {
+        const el = document.getElementById('mentorCreatedSessionsContainer');
+        if (!el) return;
+        if (!mentorCreatedSessions.length) {
+            el.innerHTML = '<p style="color:var(--muted);text-align:center;padding:16px;">No sessions created yet.</p>';
             return;
         }
-        body.innerHTML = notificationsData.slice(0,10).map(n => `<div class="notif-entry ${n.read ? 'read' : 'unread'}"><div class="notif-dot-entry"></div><div><div class="notif-entry-text">${n.message || ''}</div><div class="notif-entry-time">${n.createdAt ? new Date(n.createdAt).toLocaleString() : ''}</div></div></div>`).join('');
+        el.innerHTML = mentorCreatedSessions.map(s => {
+            const isOnline = s.mode === 'ONLINE' || s.mode?.name === 'ONLINE';
+            const link = s.meetingLink || '';
+            const physLoc = s.physicalLocation || s.location || '';
+            const _lc2 = link.toLowerCase();
+            const platform = _lc2.includes('zoom.us') ? 'Zoom' : _lc2.includes('teams.microsoft.com') ? 'Teams' : _lc2.includes('meet.google.com') ? 'Meet' : 'Online';
+            const badgeColor2 = _lc2.includes('zoom.us') ? '#0b5cff' : _lc2.includes('teams.microsoft.com') ? '#464eb8' : '#4f46e5';
+            const linkOrLoc = isOnline
+                ? (link
+                    ? `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                         <span style="background:${badgeColor2};color:white;font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;">${platform}</span>
+                         <a href="${safeUrl(link)}" target="_blank" style="font-size:11px;color:var(--indigo);word-break:break-all;">${escapeHtml(link.length > 44 ? link.slice(0,44)+'…' : link)}</a>
+                         <button class="btn btn-outline copy-created-val" data-val="${escapeHtml(link)}" style="padding:2px 8px;font-size:11px;">Copy</button>
+                       </div>`
+                    : '<span style="font-size:12px;color:var(--muted);">No link</span>')
+                : (physLoc
+                    ? `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                         <span style="font-size:12px;">📍 ${escapeHtml(physLoc)}</span>
+                         <button class="btn btn-outline copy-created-val" data-val="${escapeHtml(physLoc)}" style="padding:2px 8px;font-size:11px;">Copy</button>
+                       </div>`
+                    : '<span style="font-size:12px;color:var(--muted);">No location set</span>');
+            const learners = `${s.currentLearners ?? 0} / ${s.maxLearners ?? 1} learner${(s.maxLearners ?? 1) > 1 ? 's' : ''}`;
+            const statusColor = s.status === 'OPEN' ? 'var(--green)' : s.status === 'SCHEDULED' ? 'var(--indigo)' : 'var(--muted)';
+            return `<div class="history-item" style="align-items:flex-start;">
+                <div class="history-icon hi-completed" style="margin-top:2px;"><i class="fas fa-chalkboard-teacher"></i></div>
+                <div class="history-info" style="flex:1;">
+                    <h4>${escapeHtml(s.skillName || '')}</h4>
+                    <p>${s.scheduledTime ? new Date(s.scheduledTime).toLocaleString() : '—'} · ${s.durationMinutes || 60} min</p>
+                    <div style="margin-top:4px;">${linkOrLoc}</div>
+                </div>
+                <div style="text-align:right;font-size:12px;white-space:nowrap;">
+                    <div style="color:${statusColor};font-weight:600;">${s.status || ''}</div>
+                    <div style="color:var(--indigo);margin-top:2px;">${learners}</div>
+                </div>
+            </div>`;
+        }).join('');
+        el.querySelectorAll('.copy-created-val').forEach(btn => btn.addEventListener('click', () => {
+            navigator.clipboard.writeText(btn.dataset.val).then(() => {
+                const orig = btn.textContent;
+                btn.textContent = 'Copied!';
+                setTimeout(() => { btn.textContent = orig; }, 2000);
+            });
+        }));
     }
+
+    function initCreateSessionForm() {
+        const sel = document.getElementById('createSkillSelect');
+        if (!sel) return;
+        sel.innerHTML = '<option value="">-- Select a skill --</option>';
+        (skillsList || []).forEach(s => {
+            sel.innerHTML += `<option value="${s.id}">${escapeHtml(s.name)}${s.category ? ' (' + escapeHtml(s.category) + ')' : ''}</option>`;
+        });
+        document.querySelectorAll('input[name="createMode"]').forEach(radio => {
+            radio.addEventListener('change', () => {
+                const isOnline = document.getElementById('createModeOnline').checked;
+                document.getElementById('createMeetingLinkGroup').style.display = isOnline ? 'block' : 'none';
+                document.getElementById('createPhysicalLocationGroup').style.display = isOnline ? 'none' : 'block';
+            });
+        });
+        const btn = document.getElementById('submitCreateSession');
+        if (btn._bound) return;
+        btn._bound = true;
+        btn.addEventListener('click', async () => {
+            const msgEl = document.getElementById('createSessionMsg');
+            const showMsg = (text, isError) => {
+                msgEl.textContent = text;
+                msgEl.style.display = 'block';
+                msgEl.style.background = isError ? '#fef2f2' : '#f0fdf4';
+                msgEl.style.color = isError ? '#dc2626' : '#16a34a';
+                msgEl.style.border = `1px solid ${isError ? '#fecaca' : '#bbf7d0'}`;
+            };
+            msgEl.style.display = 'none';
+            const skillId = parseInt(document.getElementById('createSkillSelect').value);
+            const scheduledTime = document.getElementById('createScheduledTime').value;
+            const duration = parseInt(document.getElementById('createDuration').value);
+            const maxLearners = parseInt(document.getElementById('createMaxLearners').value);
+            const isOnline = document.getElementById('createModeOnline').checked;
+            const mode = isOnline ? 'ONLINE' : 'IN_PERSON';
+            const meetingLink = document.getElementById('createMeetingLink').value.trim();
+            const physicalLocation = document.getElementById('createPhysicalLocation').value.trim();
+            const description = document.getElementById('createDescription').value.trim();
+            if (!skillId) { showMsg('Please select a skill.', true); return; }
+            if (!scheduledTime) { showMsg('Please enter a scheduled date and time.', true); return; }
+            if (isNaN(duration) || duration < 15 || duration > 480) { showMsg('Duration must be between 15 and 480 minutes.', true); return; }
+            if (isNaN(maxLearners) || maxLearners < 1 || maxLearners > 50) { showMsg('Max learners must be between 1 and 50.', true); return; }
+            if (isOnline && !meetingLink) { showMsg('A meeting link is required for online sessions.', true); return; }
+            if (!isOnline && !physicalLocation) { showMsg('Physical location is required for in-person sessions.', true); return; }
+            const payload = { skillId, scheduledTime, durationMinutes: duration, maxLearners, mode, description };
+            if (isOnline) payload.meetingLink = meetingLink;
+            else payload.physicalLocation = physicalLocation;
+            btn.disabled = true;
+            btn.textContent = 'Publishing…';
+            try {
+                const resp = await fetch('/api/sessions/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify(payload)
+                });
+                const data = await resp.json();
+                if (resp.status === 401) { localStorage.removeItem('jwtToken'); window.location.href = '/login.html'; return; }
+                if (!resp.ok) { showMsg(data.error || 'Failed to create session.', true); return; }
+                showMsg('Session published! Learners can now find and join it.', false);
+                document.getElementById('createSkillSelect').value = '';
+                document.getElementById('createScheduledTime').value = '';
+                document.getElementById('createDuration').value = '60';
+                document.getElementById('createMaxLearners').value = '1';
+                document.getElementById('createModeOnline').checked = true;
+                document.getElementById('createMeetingLinkGroup').style.display = 'block';
+                document.getElementById('createPhysicalLocationGroup').style.display = 'none';
+                document.getElementById('createMeetingLink').value = '';
+                document.getElementById('createPhysicalLocation').value = '';
+                document.getElementById('createDescription').value = '';
+                try { mentorCreatedSessions = await apiRequest('/public-sessions/my-sessions'); } catch(e) { mentorCreatedSessions = []; }
+                renderMentorCreatedSessions();
+            } catch (e) {
+                showMsg(e.message || 'Network error.', true);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-paper-plane"></i> Publish Session';
+            }
+        });
+    }
+
 
     async function acceptSession(id) { if(confirm('Accept?')){ await apiRequest(`/sessions/${id}/accept`,{method:'PUT'}); alert('Accepted'); loadDashboard(); } }
     async function rejectSession(id) { if(confirm('Reject?')){ await apiRequest(`/sessions/${id}/reject`,{method:'PUT'}); alert('Rejected'); loadDashboard(); } }

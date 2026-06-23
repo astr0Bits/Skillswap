@@ -1,4 +1,4 @@
-package security;
+package src.main.java.security;
 
 import config.RateLimitConfig;
 import io.github.bucket4j.Bucket;

@@ -1,4 +1,4 @@
-package security;
+package src.main.java.security;
 
 import security.jwt.JwtUtils;
 import jakarta.servlet.FilterChain;

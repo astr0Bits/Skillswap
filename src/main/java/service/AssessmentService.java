@@ -137,10 +137,18 @@ public class AssessmentService {
             return buildPlaceholderQuestions(skillName);
         }
 
-        String prompt = "Generate exactly 5 multiple-choice quiz questions to test knowledge of: " + skillName + ".\n" +
-                "Return ONLY a valid JSON array. No markdown, no explanation, no code fences. " +
-                "Each element must be: {\"question\":\"...\",\"options\":[\"A\",\"B\",\"C\",\"D\"],\"correctAnswerIndex\":N}\n" +
-                "where N is 0-3. Make questions practical and varied in difficulty.";
+        String prompt = "Generate exactly 5 multiple-choice quiz questions to test a learner's knowledge of: " + skillName + ".\n\n" +
+                "Rules:\n" +
+                "- Return ONLY a valid JSON array. No markdown, no code fences, no explanation outside the JSON.\n" +
+                "- Each element must have exactly three keys:\n" +
+                "    \"question\"         : the full question text (string)\n" +
+                "    \"options\"          : array of exactly 4 distinct answer strings (write out the full answer text, NOT single letters)\n" +
+                "    \"correctAnswerIndex\": integer 0-3 indicating which option is correct\n\n" +
+                "Example of one valid element:\n" +
+                "{\"question\":\"What does the 'S' in the SOLID principles stand for?\"," +
+                "\"options\":[\"Single Responsibility\",\"Simple Design\",\"Static Binding\",\"Structured Programming\"]," +
+                "\"correctAnswerIndex\":0}\n\n" +
+                "Generate 5 such questions about: " + skillName + ". Vary difficulty from basic to advanced.";
 
         try {
             Map<String, Object> requestBody = Map.of(
@@ -161,7 +169,12 @@ public class AssessmentService {
 
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
                 JsonNode root = objectMapper.readTree(response.getBody());
-                String text = root.path("candidates").get(0)
+                JsonNode candidates = root.path("candidates");
+                if (!candidates.isArray() || candidates.isEmpty()) {
+                    log.error("Gemini returned no candidates for skill '{}'. Full response: {}", skillName, response.getBody());
+                    return buildPlaceholderQuestions(skillName);
+                }
+                String text = candidates.get(0)
                                   .path("content").path("parts").get(0)
                                   .path("text").asText("");
 
@@ -174,9 +187,11 @@ public class AssessmentService {
                 // Validate it parses as a JSON array
                 objectMapper.readValue(cleaned, new TypeReference<List<Map<String, Object>>>() {});
                 return cleaned;
+            } else {
+                log.error("Gemini non-2xx for skill '{}': status={} body={}", skillName, response.getStatusCode(), response.getBody());
             }
         } catch (Exception e) {
-            log.error("Gemini question generation failed for '{}': {}", skillName, e.getMessage());
+            log.error("Gemini question generation failed for '{}': {} — {}", skillName, e.getClass().getSimpleName(), e.getMessage(), e);
         }
 
         return buildPlaceholderQuestions(skillName);

@@ -1,9 +1,8 @@
-package controller;
+package src.main.java.controller;
 
 import dto.ReviewDTO;
 import dto.SubmitReviewDTO;
 import enums.SessionStatus;
-import exception.ReviewAlreadyExistsException;
 import model.Review;
 import model.Session;
 import model.User;
@@ -11,6 +10,7 @@ import repository.ReviewRepository;
 import repository.SessionRepository;
 import repository.UserRepository;
 import service.NotificationService;
+import src.main.java.exception.ReviewAlreadyExistsException;
 import validator.InputSanitizer;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;

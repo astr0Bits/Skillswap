@@ -1,4 +1,4 @@
-package model;
+package src.main.java.model;
 /*Captures messages from the contact page. 
  * It is not persisted directly (likely forwarded to an email service 
  * or stored separately). This DTO is used by a controller endpoint 

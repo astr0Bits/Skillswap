@@ -1,4 +1,4 @@
-package controller;
+package src.main.java.controller;
 
 import dto.MatchRequestDTO;
 import dto.MentorMatchDTO;

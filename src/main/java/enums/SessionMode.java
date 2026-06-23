@@ -1,4 +1,4 @@
-package enums;
+package src.main.java.enums;
 
 public enum SessionMode {
     ONLINE,

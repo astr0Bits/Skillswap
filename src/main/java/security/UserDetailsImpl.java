@@ -1,4 +1,4 @@
-package security;
+package src.main.java.security;
 
 import model.User;
 import enums.Role;

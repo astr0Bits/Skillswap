@@ -1,8 +1,8 @@
-package repository;
+package src.main.java.repository;
 
-import model.Assessment;
-import model.AssessmentAttempt;
-import model.User;
+import src.main.java.model.Assessment;
+import src.main.java.model.AssessmentAttempt;
+import src.main.java.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

@@ -1,4 +1,4 @@
-package controller;
+package src.main.java.controller;
 
 import com.stripe.exception.SignatureVerificationException;
 import com.stripe.model.Event;

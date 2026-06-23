@@ -1,5 +1,4 @@
-package payload;
-
+package src.main.java.payload;
 
 public class BookingRequest {
     private Long mentorId;

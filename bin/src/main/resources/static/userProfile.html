@@ -545,10 +545,6 @@
                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                 <span>Profile</span>
             </a>
-            <a href="/chat.html" class="nav-link">
-                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                <span>Messages</span>
-            </a>
             <p class="nav-label">Discover</p>
             <a href="/ai-matching.html" class="nav-link">
                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
@@ -701,6 +697,10 @@
                     <div class="field">
                         <label for="newPassword">New Password <span style="color:var(--muted); font-weight:400;">(leave blank to keep current)</span></label>
                         <input type="password" id="newPassword" placeholder="••••••••">
+                    </div>
+                    <div class="field">
+                        <label for="currentPassword">Current Password <span style="color:var(--muted); font-weight:400;">(required when changing email or password)</span></label>
+                        <input type="password" id="currentPassword" placeholder="••••••••">
                     </div>
                 </div>
 
@@ -962,45 +962,56 @@ async function saveProfile() {
     btn.disabled = true;
 
     try {
-        const payload = {
-            name:    document.getElementById('fullName').value.trim(),
-            email:   document.getElementById('email').value.trim(),
-            bio:     document.getElementById('bio').value.trim(),
-            location: document.getElementById('location').value,
-            role:    document.getElementById('role').value
-        };
-        const newPwd = document.getElementById('newPassword').value;
-        if (newPwd) payload.password = newPwd;
-		
-		// REMOVE everything from "// Try /users/me first" to the end of saveProfile's try block
-		// REPLACE the whole save section with:
-		
-		await apiRequest(`/users/update/${currentUser.email}`, {
-    		method: 'PUT',
-   			body: JSON.stringify(payload)
-		});
+        const nameVal        = document.getElementById('fullName').value.trim();
+        const newEmailVal    = document.getElementById('email').value.trim();
+        const locationVal    = document.getElementById('location').value;
+        const newPasswordVal = document.getElementById('newPassword').value;
+        const currentPwdVal  = document.getElementById('currentPassword').value;
 
-        currentUser = { ...currentUser, ...payload };
+        const emailChanged    = newEmailVal && newEmailVal !== currentUser.email;
+        const passwordChanged = newPasswordVal.length > 0;
 
-        // Update displayed info
-        const firstName = payload.name.split(' ')[0] || 'User';
-        const initial   = firstName.charAt(0).toUpperCase();
-        const roleDisplay = payload.role === 'SPONSOR' ? 'Sponsor' : 'Learner & Mentor';
+        if ((emailChanged || passwordChanged) && !currentPwdVal) {
+            showToast('error', 'Enter your current password to change email or password.');
+            btn.innerHTML = orig;
+            btn.disabled = false;
+            return;
+        }
+
+        const payload = { email: currentUser.email };
+        if (nameVal)     payload.name     = nameVal;
+        if (locationVal) payload.location = locationVal;
+        if (emailChanged)    payload.newEmail     = newEmailVal;
+        if (passwordChanged) payload.newPassword  = newPasswordVal;
+        if (currentPwdVal)   payload.currentPassword = currentPwdVal;
+
+        await apiRequest('/auth/update-account', { method: 'PUT', body: JSON.stringify(payload) });
+
+        if (emailChanged) currentUser = { ...currentUser, email: newEmailVal };
+        currentUser = { ...currentUser, name: nameVal || currentUser.name, location: locationVal };
+
+        const displayName = currentUser.name || 'User';
+        const firstName   = displayName.split(' ')[0];
+        const initial     = firstName.charAt(0).toUpperCase();
+        const roleDisplay = currentUser.role === 'SPONSOR' ? 'Sponsor' : 'Learner & Mentor';
 
         document.getElementById('profileAvatar').textContent   = initial;
-        document.getElementById('profileName').textContent     = payload.name;
-        document.getElementById('profileEmail').textContent    = payload.email;
-        document.getElementById('profileLocation').textContent = payload.location || 'UAE';
+        document.getElementById('profileName').textContent     = displayName;
+        document.getElementById('profileEmail').textContent    = currentUser.email;
+        document.getElementById('profileLocation').textContent = locationVal || 'UAE';
         document.getElementById('profileRoleBadge').innerHTML  =
             `<svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 10v6M2 10l10-5 10 5-10 5-10-5z"/></svg> ${roleDisplay}`;
         document.getElementById('sidebarAvatar').textContent = initial;
         document.getElementById('sidebarName').textContent   = firstName;
         document.getElementById('sidebarRole').textContent   = roleDisplay;
 
+        document.getElementById('newPassword').value     = '';
+        document.getElementById('currentPassword').value = '';
+
         showToast('success', '✅ Profile saved!');
     } catch (e) {
         console.error('saveProfile:', e);
-        showToast('error', 'Save failed: ' + e.message);
+        showToast('error', 'Save failed: ' + (e.message || 'Unknown error'));
     } finally {
         btn.innerHTML = orig;
         btn.disabled = false;
@@ -1026,6 +1037,10 @@ function renderSkills() {
     wrap.innerHTML = skills.map(s => `
         <span class="skill-tag ${s.type === 'mentor' ? 'skill-mentoring' : 'skill-learning'}">
             ${escapeHtml(s.name)}
+            ${s.type === 'learn' && s.skillId ? `<a href="/assessment.html?skillId=${s.skillId}&skillName=${encodeURIComponent(s.name)}"
+                title="Take Assessment" style="margin-left:5px;font-size:10px;font-weight:600;color:inherit;text-decoration:none;background:rgba(0,0,0,0.12);padding:1px 5px;border-radius:4px;">
+                Quiz
+            </a>` : ''}
             <button onclick="removeSkill(${s.id})" title="Remove" style="line-height:1;">
                 <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                     <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -1041,8 +1056,8 @@ async function loadMySkills() {
         const data = await apiRequest('/users/me/skills');
         // data = { teach: [...], learn: [...] }
         skills = [
-            ...(data.teach || []).map(s => ({ id: s.id, name: s.skillName, type: 'mentor' })),
-            ...(data.learn || []).map(s => ({ id: s.id, name: s.skillName, type: 'learn'  }))
+            ...(data.teach || []).map(s => ({ id: s.id, skillId: s.skillId, name: s.skillName, type: 'mentor' })),
+            ...(data.learn || []).map(s => ({ id: s.id, skillId: s.skillId, name: s.skillName, type: 'learn'  }))
         ];
         renderSkills();
     } catch (e) {
@@ -1106,24 +1121,60 @@ async function removeSkill(userSkillId) {
 // ═══════════════════════════════════════════════════════════════
 // REVIEWS
 // ═══════════════════════════════════════════════════════════════
+function relativeDate(dateStr) {
+    if (!dateStr) return '';
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1)   return 'just now';
+    if (mins < 60)  return `${mins}m ago`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    if (days < 30)  return `${days}d ago`;
+    const months = Math.floor(days / 30);
+    if (months < 12) return `${months}mo ago`;
+    return `${Math.floor(months / 12)}y ago`;
+}
+
+function starDisplay(rating) {
+    return '★'.repeat(rating) + '☆'.repeat(5 - rating);
+}
+
 async function loadReviews() {
     try {
         const reviews = await apiRequest('/reviews/me');
         const el = document.getElementById('reviewsList');
         if (!reviews || !reviews.length) {
-            el.innerHTML = '<p style="font-size:13px; color:var(--muted); text-align:center; padding:12px 0;">No reviews yet.</p>';
+            el.innerHTML = `<div style="text-align:center;padding:20px 0;">
+                <div style="font-size:32px;margin-bottom:8px;">⭐</div>
+                <p style="font-size:13px;color:var(--muted);">No reviews yet — be the first to book a session!</p>
+            </div>`;
             return;
         }
-        el.innerHTML = reviews.slice(0, 5).map(r => `
+        const total = reviews.length;
+        const avg   = (reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / total).toFixed(1);
+        const header = `
+            <div style="display:flex;align-items:center;gap:14px;padding:12px 14px;
+                        background:var(--amber-light);border-radius:10px;margin-bottom:14px;">
+                <div style="font-size:28px;font-weight:700;font-family:'Fraunces',serif;color:#b45309;">${avg}</div>
+                <div>
+                    <div style="color:#f59e0b;font-size:18px;letter-spacing:2px;">${'★'.repeat(Math.round(avg))}${'☆'.repeat(5-Math.round(avg))}</div>
+                    <div style="font-size:12px;color:#b45309;">${total} review${total !== 1 ? 's' : ''}</div>
+                </div>
+            </div>`;
+        el.innerHTML = header + reviews.map(r => `
             <div class="review-item">
                 <div class="review-top">
                     <div class="reviewer">
                         <div class="reviewer-avatar">${(r.reviewerName?.[0] || 'U').toUpperCase()}</div>
-                        <span class="reviewer-name">${escapeHtml(r.reviewerName || 'Anonymous')}</span>
+                        <div>
+                            <span class="reviewer-name">${escapeHtml(r.reviewerName || 'Anonymous')}</span>
+                            <div style="font-size:11px;color:var(--muted);">${relativeDate(r.createdAt)}</div>
+                        </div>
                     </div>
-                    <div class="stars">★ ${r.rating || '?'}</div>
+                    <div class="stars" style="font-size:14px;letter-spacing:1px;">${starDisplay(r.rating || 0)}</div>
                 </div>
-                <p class="review-text">${escapeHtml(r.comment || '')}</p>
+                ${r.comment ? `<p class="review-text">${escapeHtml(r.comment)}</p>` : ''}
             </div>`).join('');
     } catch (e) {
         console.error('loadReviews:', e);

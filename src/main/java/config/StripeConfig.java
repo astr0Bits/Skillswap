@@ -1,4 +1,4 @@
-package config;
+package src.main.java.config;
 
 import com.stripe.Stripe;
 import jakarta.annotation.PostConstruct;

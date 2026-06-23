@@ -1,4 +1,4 @@
-package dto;
+package src.main.java.dto;
 /* Used by the login controller to bind the JSON request body. 
  * Validation ensures both fields are present.
 */

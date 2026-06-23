@@ -1,5 +1,5 @@
 // enums/SessionStatus.java
-package enums;
+package src.main.java.enums;
 
 public enum SessionStatus {
 	OPEN, 

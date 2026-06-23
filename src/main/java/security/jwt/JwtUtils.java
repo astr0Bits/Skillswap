@@ -1,4 +1,4 @@
-package security.jwt;
+package src.main.java.security.jwt;
 
 /*
  * JwtUtils provides all core JWT operations:

@@ -1,5 +1,5 @@
 // dto/SessionRequestDTO.java
-package dto;
+package src.main.java.dto;
 
 import enums.SessionMode;
 import java.time.LocalDateTime;

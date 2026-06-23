@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Profile & Settings – SkillSwap UAE</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #f1f5f9;
+            color: #1e293b;
+            display: flex;
+            min-height: 100vh;
+            font-size: 14px;
+        }
+
+        /* SIDEBAR */
+        .sidebar {
+            width: 220px; background: #fff;
+            border-right: 1px solid #e2e8f0;
+            display: flex; flex-direction: column;
+            position: fixed; top: 0; left: 0; bottom: 0; z-index: 10;
+        }
+        .sidebar-logo { padding: 18px 16px 14px; display: flex; align-items: center; gap: 9px; }
+        .logo-icon { width: 28px; height: 28px; background: #5b5ea6; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 14px; font-weight: 700; }
+        .logo-text { font-size: 15px; font-weight: 700; color: #1e293b; }
+        .nav { flex: 1; padding: 6px 10px; display: flex; flex-direction: column; gap: 1px; }
+        .nav-item { display: flex; align-items: center; gap: 9px; padding: 9px 10px; border-radius: 7px; text-decoration: none; color: #64748b; font-size: 13.5px; font-weight: 500; transition: background 0.1s, color 0.1s; }
+        .nav-item:hover { background: #f8fafc; color: #334155; }
+        .nav-item.active { background: #eef2ff; color: #5b5ea6; }
+        .nav-item svg { width: 17px; height: 17px; flex-shrink: 0; }
+        .sidebar-footer { padding: 12px 14px; border-top: 1px solid #e2e8f0; display: flex; align-items: center; gap: 9px; }
+        .avatar { width: 34px; height: 34px; background: #5b5ea6; border-radius: 9px; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 12px; flex-shrink: 0; }
+        .avatar-name { font-size: 13px; font-weight: 600; }
+        .avatar-sub  { font-size: 11px; color: #94a3b8; }
+
+        /* MAIN */
+        .main { margin-left: 220px; flex: 1; display: flex; flex-direction: column; }
+
+        .topbar { background: #fff; border-bottom: 1px solid #e2e8f0; padding: 18px 28px 14px; }
+        .topbar h1 { font-size: 20px; font-weight: 700; color: #0f172a; }
+        .topbar p  { font-size: 13px; color: #64748b; margin-top: 3px; }
+
+        /* TABS */
+        .tabs { background: #fff; border-bottom: 1px solid #e2e8f0; padding: 0 28px; display: flex; gap: 0; }
+        .tab {
+            padding: 13px 18px;
+            font-size: 13.5px; font-weight: 500;
+            color: #64748b; cursor: pointer;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -1px;
+            text-decoration: none;
+            transition: color 0.12s, border-color 0.12s;
+        }
+        .tab:hover:not(.active) { color: #334155; }
+        .tab.active { color: #5b5ea6; border-bottom-color: #5b5ea6; font-weight: 600; }
+
+        /* CONTENT */
+        .content { padding: 24px 28px; flex: 1; }
+
+        /* ALERTS */
+        .alert { display: flex; align-items: center; gap: 8px; padding: 11px 14px; border-radius: 8px; font-size: 13px; font-weight: 500; margin-bottom: 16px; }
+        .alert.success { background: #dcfce7; color: #16a34a; }
+        .alert.error   { background: #fee2e2; color: #dc2626; }
+
+        /* TAB PANELS */
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; }
+
+        /* TWO COLUMN */
+        .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+        /* CARD */
+        .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; }
+        .card-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid #e2e8f0; }
+        .card-title { display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 600; color: #0f172a; }
+        .card-icon { width: 30px; height: 30px; background: #eef2ff; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+        .card-body { padding: 20px; display: flex; flex-direction: column; gap: 15px; }
+
+        /* VISIBILITY BADGES */
+        .vis-pub  { padding: 3px 10px; border-radius: 6px; font-size: 11.5px; font-weight: 600; background: #dcfce7; color: #16a34a; border: none; cursor: default; }
+        .vis-priv { padding: 3px 10px; border-radius: 6px; font-size: 11.5px; font-weight: 600; background: #fee2e2; color: #dc2626; border: none; cursor: default; }
+        .vis-group { display: flex; gap: 4px; }
+
+        /* FORM */
+        .field { display: flex; flex-direction: column; gap: 5px; }
+        .field label { font-size: 13px; font-weight: 500; color: #334155; display: flex; align-items: center; gap: 6px; }
+        .pub-tag  { font-size: 11px; font-weight: 600; color: #16a34a; }
+        .priv-tag { font-size: 11px; font-weight: 600; color: #dc2626; }
+
+        .field input,
+        .field select,
+        .field textarea {
+            width: 100%; padding: 9px 12px;
+            border: 1.5px solid #e2e8f0; border-radius: 8px;
+            font-family: 'Inter', sans-serif; font-size: 13.5px; color: #0f172a;
+            background: #fff; outline: none; transition: border-color 0.12s, box-shadow 0.12s;
+        }
+        .field input:focus, .field select:focus, .field textarea:focus {
+            border-color: #5b5ea6; box-shadow: 0 0 0 3px rgba(91,94,166,0.1);
+        }
+        .field .hint { font-size: 12px; color: #94a3b8; }
+
+        /* LOGO UPLOAD */
+        .upload-box {
+            border: 1.5px dashed #e2e8f0; border-radius: 8px;
+            padding: 24px; text-align: center; cursor: pointer;
+            display: flex; flex-direction: column; align-items: center; gap: 6px;
+            transition: border-color 0.12s, background 0.12s;
+        }
+        .upload-box:hover { border-color: #5b5ea6; background: #eef2ff; }
+        .upload-icon { font-size: 26px; color: #94a3b8; }
+        .upload-box p { font-size: 13px; color: #64748b; }
+        .upload-box small { font-size: 11.5px; color: #94a3b8; }
+
+        /* DIVIDER LABEL */
+        .section-divider {
+            font-size: 12px; font-weight: 600; color: #64748b;
+            display: flex; align-items: center; gap: 8px;
+            text-transform: uppercase; letter-spacing: 0.5px;
+            padding: 4px 0;
+        }
+        .section-divider::after { content: ''; flex: 1; height: 1px; background: #e2e8f0; }
+
+        /* BUTTONS */
+        .btn-row { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+        .btn-outline { padding: 8px 18px; border: 1.5px solid #e2e8f0; border-radius: 8px; background: #fff; font-size: 13px; font-weight: 500; cursor: pointer; color: #334155; font-family: 'Inter', sans-serif; }
+        .btn-primary { padding: 8px 18px; border: none; border-radius: 8px; background: #5b5ea6; color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; font-family: 'Inter', sans-serif; transition: background 0.12s; }
+        .btn-primary:hover { background: #4e5196; }
+
+        /* TOGGLES */
+        .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 11px 0; border-bottom: 1px solid #f1f5f9; }
+        .toggle-row:last-child { border-bottom: none; padding-bottom: 0; }
+        .toggle-label { font-size: 13.5px; font-weight: 500; }
+        .toggle-sub   { font-size: 12px; color: #94a3b8; margin-top: 1px; }
+        .switch { position: relative; display: inline-block; width: 42px; height: 22px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: #e2e8f0; border-radius: 999px; transition: 0.18s; }
+        .slider::before { content: ''; position: absolute; height: 16px; width: 16px; left: 3px; bottom: 3px; background: #fff; border-radius: 50%; transition: 0.18s; box-shadow: 0 1px 3px rgba(0,0,0,0.18); }
+        input:checked + .slider { background: #5b5ea6; }
+        input:checked + .slider::before { transform: translateX(20px); }
+
+        /* DANGER ZONE */
+        .danger-zone { border: 1.5px solid #fecaca; border-radius: 10px; padding: 16px 18px; background: #fff5f5; display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 16px; }
+        .danger-title { font-size: 13.5px; font-weight: 600; color: #dc2626; }
+        .danger-sub   { font-size: 12px; color: #f87171; margin-top: 2px; }
+        .btn-danger { padding: 7px 16px; border: 1.5px solid #dc2626; border-radius: 7px; background: #fff; color: #dc2626; font-size: 13px; font-weight: 600; cursor: pointer; font-family: 'Inter', sans-serif; transition: all 0.12s; }
+        .btn-danger:hover { background: #dc2626; color: #fff; }
+
+        /* PUBLIC PREVIEW */
+        .preview-wrap { max-width: 560px; }
+        .preview-hint { font-size: 13px; color: #64748b; margin-bottom: 14px; }
+        .preview-card { border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background: #fff; }
+        .preview-banner { height: 90px; background: linear-gradient(135deg, #5b5ea6, #7c3aed); }
+        .preview-body { padding: 16px 20px 20px; }
+        .preview-logo { width: 56px; height: 56px; border-radius: 12px; background: #fff; border: 3px solid #fff; box-shadow: 0 3px 10px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 17px; color: #5b5ea6; margin-top: -36px; margin-bottom: 10px; }
+        .preview-name   { font-size: 17px; font-weight: 700; color: #0f172a; }
+        .preview-sector { font-size: 12px; color: #64748b; margin-top: 2px; }
+        .preview-bio    { font-size: 13px; color: #475569; line-height: 1.6; margin-top: 10px; }
+        .preview-tags   { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+        .preview-tag    { padding: 4px 10px; border-radius: 999px; background: #eef2ff; color: #5b5ea6; font-size: 11.5px; font-weight: 600; }
+    </style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+    <div class="sidebar-logo">
+        <div class="logo-icon">⇄</div>
+        <span class="logo-text">SkillExchange</span>
+    </div>
+    <nav class="nav">
+        <a class="nav-item" href="/sponsor/dashboard">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+                <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+            </svg>Dashboard
+        </a>
+        <a class="nav-item" href="/sponsor/sponsorships">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>Sponsorship Management
+        </a>
+        <a class="nav-item" href="/sponsor/talent">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+            </svg>Talent Pool
+        </a>
+        <a class="nav-item" href="/sponsor/reports">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+            </svg>Reports &amp; Impact
+        </a>
+        <a class="nav-item active" href="/sponsor/profile">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+            </svg>Profile &amp; Settings
+        </a>
+    </nav>
+    <div class="sidebar-footer">
+        <div class="avatar" th:text="${#strings.substring(sponsor.name,0,2).toUpperCase()}">TC</div>
+        <div>
+            <div class="avatar-name" th:text="${sponsor.name}">TechCorp Inc.</div>
+            <div class="avatar-sub">Sponsor</div>
+        </div>
+    </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+    <div class="topbar">
+        <h1>Profile &amp; Settings</h1>
+        <p>Manage your organization's profile, settings, and public presence</p>
+    </div>
+
+    <!-- TABS -->
+    <div class="tabs">
+        <a class="tab active" href="#" onclick="switchTab('internal');return false;">Internal Profile</a>
+        <a class="tab" href="#" onclick="switchTab('settings');return false;">Settings</a>
+        <a class="tab" href="#" onclick="switchTab('preview');return false;">Public Profile Preview</a>
+    </div>
+
+    <div class="content">
+
+        <!-- Flash messages -->
+        <div class="alert success" th:if="${successMsg}" th:text="${successMsg}"></div>
+        <div class="alert error"   th:if="${errorMsg}"   th:text="${errorMsg}"></div>
+
+        <!-- ══ INTERNAL PROFILE ══ -->
+        <div id="tab-internal" class="tab-panel active">
+            <form th:action="@{/sponsor/profile/save}" method="post" enctype="multipart/form-data">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <div class="two-col">
+
+                    <!-- Organization Details -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <div class="card-icon">🏢</div>
+                                Organization Details
+                            </div>
+                            <span class="vis-pub">Public</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="field">
+                                <label>Organization Name <span class="pub-tag">(Public)</span></label>
+                                <input type="text" name="name" th:value="${sponsor.name}" placeholder="TechCorp Inc."/>
+                                <span class="hint">This is your company name displayed publicly</span>
+                            </div>
+                            <div class="field">
+                                <label>Industry Sector <span class="pub-tag">(Public)</span></label>
+                                <select name="industry">
+                                    <option value="Technology" th:selected="${sponsor.industry == 'Technology'}">Technology</option>
+                                    <option value="Finance"    th:selected="${sponsor.industry == 'Finance'}">Finance</option>
+                                    <option value="Healthcare" th:selected="${sponsor.industry == 'Healthcare'}">Healthcare</option>
+                                    <option value="Education"  th:selected="${sponsor.industry == 'Education'}">Education</option>
+                                    <option value="Retail"     th:selected="${sponsor.industry == 'Retail'}">Retail</option>
+                                    <option value="Government" th:selected="${sponsor.industry == 'Government'}">Government</option>
+                                    <option value="Other"      th:selected="${sponsor.industry == 'Other'}">Other</option>
+                                </select>
+                            </div>
+                            <div class="field">
+                                <label>Organization Logo <span class="pub-tag">(Public)</span></label>
+                                <div class="upload-box" onclick="document.getElementById('logoInput').click()">
+                                    <div class="upload-icon">☁️</div>
+                                    <p>Click to upload logo</p>
+                                    <small>300×300px, PNG or SVG</small>
+                                </div>
+                                <input type="file" id="logoInput" name="logo" accept="image/*" style="display:none"/>
+                            </div>
+                            <div class="field">
+                                <label>Company Bio <span class="pub-tag">(Public)</span></label>
+                                <textarea name="bio" rows="3" placeholder="Describe your organization..." th:text="${sponsor.bio}"></textarea>
+                            </div>
+                            <div class="field">
+                                <label>Website URL</label>
+                                <input type="url" name="website" th:value="${sponsor.website}" placeholder="https://yourcompany.com"/>
+                            </div>
+                            <div class="field">
+                                <label>Location</label>
+                                <input type="text" name="location" th:value="${sponsor.location}" placeholder="Abu Dhabi, UAE"/>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Contact & Company Info -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <div class="card-icon">📇</div>
+                                Contact &amp; Company Info
+                            </div>
+                            <div class="vis-group">
+                                <span class="vis-priv">Private</span>
+                                <span class="vis-pub">Public</span>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="section-divider">🔒 Private Contact (Admin Only)</div>
+                            <div class="field">
+                                <label>Primary Contact Name</label>
+                                <input type="text" name="contactName" th:value="${sponsor.contactName}" placeholder="Sarah Johnson"/>
+                            </div>
+                            <div class="field">
+                                <label>Job Title</label>
+                                <input type="text" name="contactTitle" th:value="${sponsor.contactTitle}" placeholder="Partnerships Director"/>
+                            </div>
+                            <div class="field">
+                                <label>Email Address</label>
+                                <input type="email" name="contactEmail" th:value="${sponsor.contactEmail}" placeholder="contact@company.com"/>
+                            </div>
+                            <div class="field">
+                                <label>Phone Number</label>
+                                <input type="tel" name="contactPhone" th:value="${sponsor.contactPhone}" placeholder="+971 XX XXX XXXX"/>
+                            </div>
+
+                            <div class="section-divider" style="margin-top:4px">🌐 Public Company Information</div>
+                            <div class="field">
+                                <label>LinkedIn URL <span class="pub-tag">(Public)</span></label>
+                                <input type="url" name="linkedin" th:value="${sponsor.linkedin}" placeholder="https://linkedin.com/company/..."/>
+                            </div>
+                            <div class="field">
+                                <label>Founded Year <span class="pub-tag">(Public)</span></label>
+                                <input type="number" name="foundedYear" th:value="${sponsor.foundedYear}" placeholder="2010" min="1900" max="2030"/>
+                            </div>
+                            <div class="field">
+                                <label>Company Size <span class="pub-tag">(Public)</span></label>
+                                <select name="companySize">
+                                    <option value="1-10"     th:selected="${sponsor.companySize == '1-10'}">1–10 employees</option>
+                                    <option value="11-50"    th:selected="${sponsor.companySize == '11-50'}">11–50 employees</option>
+                                    <option value="51-200"   th:selected="${sponsor.companySize == '51-200'}">51–200 employees</option>
+                                    <option value="201-1000" th:selected="${sponsor.companySize == '201-1000'}">201–1,000 employees</option>
+                                    <option value="1000+"    th:selected="${sponsor.companySize == '1000+'}">1,000+ employees</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="btn-row">
+                    <button type="reset"  class="btn-outline">Discard Changes</button>
+                    <button type="submit" class="btn-primary">Save Profile</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- ══ SETTINGS ══ -->
+        <div id="tab-settings" class="tab-panel">
+            <div class="two-col">
+                <!-- Notifications -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <div class="card-icon">🔔</div>
+                            Notification Preferences
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <form th:action="@{/sponsor/profile/settings}" method="post">
+                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                            <div class="toggle-row">
+                                <div>
+                                    <div class="toggle-label">New Applications</div>
+                                    <div class="toggle-sub">Get notified when someone applies to your program</div>
+                                </div>
+                                <label class="switch"><input type="checkbox" name="notifApplications" th:checked="${settings.notifApplications}"/><span class="slider"></span></label>
+                            </div>
+                            <div class="toggle-row">
+                                <div>
+                                    <div class="toggle-label">Coupon Usage Alerts</div>
+                                    <div class="toggle-sub">Alert when coupons reach 80% usage</div>
+                                </div>
+                                <label class="switch"><input type="checkbox" name="notifCoupons" th:checked="${settings.notifCoupons}"/><span class="slider"></span></label>
+                            </div>
+                            <div class="toggle-row">
+                                <div>
+                                    <div class="toggle-label">Monthly Impact Report</div>
+                                    <div class="toggle-sub">Receive monthly PDF impact report via email</div>
+                                </div>
+                                <label class="switch"><input type="checkbox" name="notifReports" th:checked="${settings.notifReports}"/><span class="slider"></span></label>
+                            </div>
+                            <div class="toggle-row">
+                                <div>
+                                    <div class="toggle-label">Platform Announcements</div>
+                                    <div class="toggle-sub">News and updates from SkillSwap UAE</div>
+                                </div>
+                                <label class="switch"><input type="checkbox" name="notifAnnouncements" th:checked="${settings.notifAnnouncements}"/><span class="slider"></span></label>
+                            </div>
+                            <div class="btn-row" style="margin-top:14px">
+                                <button type="submit" class="btn-primary">Save Preferences</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Security -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <div class="card-icon">🔐</div>
+                            Security
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <form th:action="@{/sponsor/profile/change-password}" method="post">
+                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                            <div style="display:flex;flex-direction:column;gap:14px">
+                                <div class="field">
+                                    <label>Current Password</label>
+                                    <input type="password" name="currentPassword" placeholder="••••••••"/>
+                                </div>
+                                <div class="field">
+                                    <label>New Password</label>
+                                    <input type="password" name="newPassword" placeholder="Min. 8 characters"/>
+                                </div>
+                                <div class="field">
+                                    <label>Confirm New Password</label>
+                                    <input type="password" name="confirmPassword" placeholder="Repeat new password"/>
+                                </div>
+                                <button type="submit" class="btn-primary">Update Password</button>
+                            </div>
+                        </form>
+                        <div class="danger-zone">
+                            <div>
+                                <div class="danger-title">Delete Account</div>
+                                <div class="danger-sub">Permanently remove your organization and all data</div>
+                            </div>
+                            <button class="btn-danger" onclick="confirmDelete()">Delete Account</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══ PUBLIC PREVIEW ══ -->
+        <div id="tab-preview" class="tab-panel">
+            <div class="preview-wrap">
+                <p class="preview-hint">This is how your profile appears to learners and other users on SkillSwap UAE.</p>
+                <div class="preview-card">
+                    <div class="preview-banner"></div>
+                    <div class="preview-body">
+                        <div class="preview-logo" th:text="${#strings.substring(sponsor.name,0,2).toUpperCase()}">TC</div>
+                        <div class="preview-name"   th:text="${sponsor.name}">TechCorp Inc.</div>
+                        <div class="preview-sector" th:text="${sponsor.industry + ' · ' + sponsor.location}">Technology · Abu Dhabi, UAE</div>
+                        <p class="preview-bio"      th:text="${sponsor.bio}">A leading technology company committed to empowering the next generation of UAE talent.</p>
+                        <div class="preview-tags">
+                            <span class="preview-tag">🎓 Scholarships</span>
+                            <span class="preview-tag">💼 Internships</span>
+                            <span class="preview-tag">🤝 Mentorship</span>
+                            <span class="preview-tag" th:text="'Est. ' + ${sponsor.foundedYear}">Est. 2010</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</main>
+
+<script>
+    function switchTab(name) {
+        const names = ['internal', 'settings', 'preview'];
+        document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', names[i] === name));
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        document.getElementById('tab-' + name).classList.add('active');
+    }
+    function confirmDelete() {
+        if (confirm('Are you sure? This action cannot be undone.')) window.location.href = '/sponsor/profile/delete';
+    }
+</script>
+</body>
+</html>

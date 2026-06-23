@@ -1,5 +1,5 @@
 // repository/SkillRepository.java
-package repository;
+package src.main.java.repository;
 
 import model.Skill;
 import org.springframework.data.jpa.repository.JpaRepository;

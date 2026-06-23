@@ -1,4 +1,4 @@
-package controller;
+package src.main.java.controller;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;

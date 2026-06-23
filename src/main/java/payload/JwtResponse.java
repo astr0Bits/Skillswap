@@ -1,4 +1,4 @@
-package payload;
+package src.main.java.payload;
 /*A standard DTO to send back to the client 
  * after authentication, containing the JWT 
  * and user information.

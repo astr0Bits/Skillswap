@@ -1,4 +1,4 @@
-package repository;
+package src.main.java.repository;
 
 import model.CreditTransaction;
 import model.User;

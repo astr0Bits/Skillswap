@@ -1,5 +1,5 @@
 // dto/UserPreferencesDTO.java
-package dto;
+package src.main.java.dto;
 
 import validator.NoHtml;
 

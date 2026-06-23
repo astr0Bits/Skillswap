@@ -1,5 +1,5 @@
 // dto/ReviewDTO.java
-package dto;
+package src.main.java.dto;
 
 import java.time.LocalDateTime;
 

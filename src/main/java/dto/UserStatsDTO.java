@@ -1,5 +1,5 @@
 // dto/UserStatsDTO.java
-package dto;
+package src.main.java.dto;
 
 public class UserStatsDTO {
     private Integer credits;

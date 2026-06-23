@@ -1,4 +1,4 @@
-package repository;
+package src.main.java.repository;
 /*Provides data access for the User entity. 
  * It’s used by UserService and UserController 
  * (and likely by the authentication service) 

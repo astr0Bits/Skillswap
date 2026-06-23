@@ -1,4 +1,4 @@
-package controller;
+package src.main.java.controller;
 import dev.samstevens.totp.qr.QrData;
 import dev.samstevens.totp.qr.QrGenerator;
 import model.User;

@@ -1,5 +1,5 @@
 // controller/NotificationController.java
-package controller;
+package src.main.java.controller;
 
 import dto.NotificationDTO;
 import model.User;

@@ -1,5 +1,5 @@
 // model/Skill.java
-package model;
+package src.main.java.model;
 
 import jakarta.persistence.*;
 

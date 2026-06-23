@@ -1,5 +1,5 @@
 // model/UserSkill.java
-package model;
+package src.main.java.model;
 
 import enums.UserSkillType;
 import jakarta.persistence.*;

@@ -1,4 +1,4 @@
-package config;
+package src.main.java.config;
 
 import enums.Role;
 import model.User;

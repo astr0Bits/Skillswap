@@ -1,4 +1,4 @@
-package security;
+package src.main.java.security;
 
 // handling HTTP requests/responses and exceptions.
 import java.io.IOException;

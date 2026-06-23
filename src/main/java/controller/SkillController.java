@@ -1,4 +1,4 @@
-package controller;
+package src.main.java.controller;
 
 import model.Skill;
 import repository.SkillRepository;

@@ -64,12 +64,20 @@ public class AiSummaryService {
 
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
                 JsonNode root = objectMapper.readTree(response.getBody());
-                String text = root.path("candidates").get(0)
+                JsonNode candidates = root.path("candidates");
+                if (!candidates.isArray() || candidates.isEmpty()) {
+                    log.error("Gemini returned no candidates for generateSummary. Full response: {}", response.getBody());
+                    return "Summary unavailable — please check back later.";
+                }
+                String text = candidates.get(0)
                                   .path("content").path("parts").get(0)
                                   .path("text").asText("");
                 if (!text.isBlank()) {
                     return text;
                 }
+                log.warn("Gemini returned blank text for generateSummary. Full response: {}", response.getBody());
+            } else {
+                log.error("Gemini non-2xx for generateSummary: status={} body={}", response.getStatusCode(), response.getBody());
             }
         } catch (HttpClientErrorException e) {
             if (e.getStatusCode().value() == 429) {
@@ -78,7 +86,7 @@ public class AiSummaryService {
                 log.error("Gemini API error for generateSummary: {} — {}", e.getStatusCode(), e.getResponseBodyAsString());
             }
         } catch (Exception e) {
-            log.error("Gemini API call failed for generateSummary: {}", e.getMessage());
+            log.error("Gemini API call failed for generateSummary: {} — {}", e.getClass().getSimpleName(), e.getMessage(), e);
         }
 
         return "Summary unavailable — please check back later.";

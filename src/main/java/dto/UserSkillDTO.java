@@ -1,5 +1,5 @@
 // dto/UserSkillDTO.java
-package dto;
+package src.main.java.dto;
 
 import model.UserSkill.SkillLevel;
 import model.UserSkill.SkillType;

@@ -1,4 +1,4 @@
-package dto;
+package src.main.java.dto;
 
 import validator.NoHtml;
 import jakarta.validation.constraints.Email;

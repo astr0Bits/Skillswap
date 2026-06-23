@@ -1,4 +1,4 @@
-package validator;
+package src.main.java.validator;
  
 import org.owasp.html.PolicyFactory;
 import org.owasp.html.Sanitizers;

@@ -1,4 +1,4 @@
-package config;
+package src.main.java.config;
 
 import model.Skill;
 import repository.SkillRepository;

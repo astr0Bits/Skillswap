@@ -1,387 +1,272 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<html lang="en">
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Sponsor Dashboard – SkillSwap UAE</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: #f1f5f9;
-            color: #1e293b;
-            display: flex;
-            min-height: 100vh;
-            font-size: 14px;
-        }
-
-        /* SIDEBAR */
-        .sidebar {
-            width: 220px;
-            background: #fff;
-            border-right: 1px solid #e2e8f0;
-            display: flex;
-            flex-direction: column;
-            position: fixed;
-            top: 0; left: 0; bottom: 0;
-            z-index: 10;
-        }
-        .sidebar-logo {
-            padding: 18px 16px 14px;
-            display: flex;
-            align-items: center;
-            gap: 9px;
-        }
-        .logo-icon {
-            width: 28px; height: 28px;
-            background: #4f6ef7;
-            border-radius: 6px;
-            display: flex; align-items: center; justify-content: center;
-            color: #fff; font-size: 14px; font-weight: 700;
-        }
-        .logo-text { font-size: 15px; font-weight: 700; color: #4f6ef7; }
-
-        .nav { flex: 1; padding: 6px 10px; display: flex; flex-direction: column; gap: 1px; }
-        .nav-item {
-            display: flex; align-items: center; gap: 9px;
-            padding: 9px 10px;
-            border-radius: 7px;
-            text-decoration: none;
-            color: #64748b;
-            font-size: 13.5px;
-            font-weight: 500;
-            transition: background 0.1s, color 0.1s;
-        }
-        .nav-item:hover { background: #f8fafc; color: #334155; }
-        .nav-item.active { background: #eef2ff; color: #4f6ef7; }
-        .nav-item svg { width: 17px; height: 17px; flex-shrink: 0; }
-
-        .sidebar-footer {
-            padding: 12px 14px;
-            border-top: 1px solid #e2e8f0;
-            display: flex; align-items: center; gap: 9px;
-        }
-        .avatar {
-            width: 34px; height: 34px;
-            background: #4f6ef7;
-            border-radius: 9px;
-            display: flex; align-items: center; justify-content: center;
-            color: #fff; font-weight: 700; font-size: 12px; flex-shrink: 0;
-        }
-        .avatar-name { font-size: 13px; font-weight: 600; }
-        .avatar-sub  { font-size: 11px; color: #94a3b8; }
-
-        /* MAIN */
-        .main { margin-left: 220px; flex: 1; }
-        .topbar {
-            background: #fff;
-            border-bottom: 1px solid #e2e8f0;
-            padding: 15px 26px;
-            display: flex; align-items: center; justify-content: space-between;
-        }
-        .topbar h1 { font-size: 20px; font-weight: 700; color: #0f172a; }
-        .export-btn {
-            display: flex; align-items: center; gap: 5px;
-            padding: 7px 14px;
-            border: 1.5px solid #e2e8f0; border-radius: 7px;
-            background: #fff; color: #4f6ef7;
-            font-size: 13px; font-weight: 500;
-            cursor: pointer; text-decoration: none;
-            font-family: 'Inter', sans-serif;
-        }
-        .export-btn:hover { border-color: #4f6ef7; }
-
-        .content { padding: 22px 26px; display: flex; flex-direction: column; gap: 22px; }
-
-        /* QUICK ACTIONS */
-        .quick-actions {
-            background: #fff;
-            border: 1px solid #e2e8f0;
-            border-radius: 10px;
-            padding: 13px 18px;
-            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-        }
-        .qa-label { font-size: 13.5px; font-weight: 600; display: flex; align-items: center; gap: 5px; }
-        .qa-btn {
-            display: flex; align-items: center; gap: 6px;
-            padding: 7px 15px;
-            border-radius: 999px; border: none; cursor: pointer;
-            font-size: 13px; font-weight: 500; font-family: 'Inter', sans-serif;
-            text-decoration: none; transition: opacity 0.1s;
-        }
-        .qa-btn:hover { opacity: 0.82; }
-        .qa-btn.blue   { background: #dbeafe; color: #3b82f6; }
-        .qa-btn.pink   { background: #fce7f3; color: #ec4899; }
-        .qa-btn.purple { background: #ede9fe; color: #8b5cf6; }
-        .qa-btn.teal   { background: #d1fae5; color: #10b981; }
-
-        /* SECTION BOX */
-        .section-box {
-            background: #fff;
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            overflow: hidden;
-        }
-        .section-head {
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 16px 20px 12px;
-        }
-        .section-title {
-            font-size: 15.5px; font-weight: 700; color: #0f172a;
-            display: flex; align-items: center; gap: 7px;
-        }
-        .monthly-btn {
-            display: flex; align-items: center; gap: 5px;
-            padding: 5px 11px;
-            border: 1px solid #e2e8f0; border-radius: 7px;
-            background: #fff; font-size: 12.5px; font-weight: 500;
-            color: #4f6ef7; cursor: pointer; font-family: 'Inter', sans-serif;
-        }
-
-        /* METRICS */
-        .metrics-row {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            border-top: 1px solid #e2e8f0;
-        }
-        .metric-card {
-            padding: 18px 20px;
-            border-right: 1px solid #e2e8f0;
-            display: flex; flex-direction: column; gap: 8px;
-            background: #fff;
-        }
-        .metric-card:last-child { border-right: none; }
-        .metric-icon {
-            width: 40px; height: 40px;
-            border-radius: 9px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 19px;
-        }
-        .ic-blue   { background: #eff6ff; }
-        .ic-green  { background: #f0fdf4; }
-        .ic-amber  { background: #fffbeb; }
-        .ic-purple { background: #f5f3ff; }
-
-        .m-label { font-size: 13px; font-weight: 500; color: #475569; }
-        .m-value { font-size: 26px; font-weight: 700; color: #0f172a; line-height: 1.1; }
-        .m-change { font-size: 12px; font-weight: 500; }
-        .m-change.g { color: #22c55e; }
-        .m-change.r { color: #ef4444; }
-        .m-change.a { color: #f59e0b; }
-        .m-sub { font-size: 12px; color: #94a3b8; }
-
-        /* PROGRAMS */
-        .programs-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 14px;
-            padding: 14px 20px 20px;
-        }
-        .program-card {
-            border: 1px solid #e2e8f0; border-radius: 9px;
-            padding: 16px; background: #fff;
-            display: flex; flex-direction: column; gap: 9px;
-        }
-        .badge {
-            display: inline-flex; align-items: center;
-            padding: 3px 10px; border-radius: 999px;
-            font-size: 11.5px; font-weight: 600; width: fit-content;
-        }
-        .badge.active  { background: #dcfce7; color: #16a34a; }
-        .badge.pending { background: #fef9c3; color: #ca8a04; }
-        .badge.inactive{ background: #f1f5f9; color: #64748b; }
-        .prog-title { font-size: 14px; font-weight: 700; color: #0f172a; }
-        .prog-desc  { font-size: 12.5px; color: #64748b; line-height: 1.5; }
-
-        .add-btn {
-            display: flex; align-items: center; gap: 5px;
-            padding: 8px 16px;
-            background: #1e3a8a; color: #fff;
-            border: none; border-radius: 8px;
-            font-size: 13px; font-weight: 600; cursor: pointer;
-            text-decoration: none; font-family: 'Inter', sans-serif;
-        }
-        .add-btn:hover { background: #1e3480; }
-
-        /* COUPONS */
-        .coupons-list { padding: 0 20px 20px; display: flex; flex-direction: column; gap: 9px; }
-        .coupon-row {
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 11px 15px; border: 1px solid #e2e8f0; border-radius: 8px; background: #fff;
-        }
-        .coupon-code   { font-size: 13.5px; font-weight: 700; color: #0f172a; letter-spacing: 0.4px; }
-        .coupon-detail { font-size: 12px; color: #94a3b8; margin-top: 2px; }
-        .coupon-right  { display: flex; align-items: center; gap: 10px; }
-        .coupon-uses   { font-size: 12.5px; color: #64748b; font-weight: 500; }
-
-        .empty { text-align: center; padding: 24px; color: #94a3b8; font-size: 13px; }
-        .empty a { color: #4f6ef7; text-decoration: none; }
-    </style>
+    <title>Sponsor Dashboard – SkillSwap</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/sponsor.css">
 </head>
 <body>
 
 <aside class="sidebar">
-    <div class="sidebar-logo">
-        <div class="logo-icon">⇄</div>
-        <span class="logo-text">SkillExchange</span>
-    </div>
-    <nav class="nav">
-        <a class="nav-item active" href="/sponsor/dashboard">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
-                <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
-            </svg>Dashboard
+    <a href="sponsor-dashboard.html" class="sidebar-logo">
+        <div class="sidebar-logo-icon">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+            </svg>
+        </div>
+        <span class="sidebar-logo-text">SkillSwap</span>
+    </a>
+    <nav class="nav-section">
+        <p class="nav-label">Overview</p>
+        <a href="sponsor-dashboard.html" class="nav-link active">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            <span>Dashboard</span>
         </a>
-        <a class="nav-item" href="/sponsor/sponsorships">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                <circle cx="9" cy="7" r="4"/>
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-            </svg>Sponsorship Management
+        <p class="nav-label">Manage</p>
+        <a href="sponsor-sponsorships.html" class="nav-link">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <span>Sponsorships</span>
         </a>
-        <a class="nav-item" href="/sponsor/talent">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-            </svg>Talent Pool
+        <a href="sponsor-coupons.html" class="nav-link">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 12V22H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/></svg>
+            <span>Coupons</span>
         </a>
-        <a class="nav-item" href="/sponsor/reports">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
-            </svg>Reports &amp; Impact
+        <a href="sponsor-talent.html" class="nav-link">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+            <span>Talent Pool</span>
         </a>
-        <a class="nav-item" href="/sponsor/profile">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
-            </svg>Profile &amp; Settings
+        <p class="nav-label">Insights</p>
+        <a href="sponsor-reports.html" class="nav-link">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            <span>Reports</span>
+        </a>
+        <p class="nav-label">Account</p>
+        <a href="sponsor-profile.html" class="nav-link">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+            <span>Profile &amp; Settings</span>
         </a>
     </nav>
     <div class="sidebar-footer">
-        <div class="avatar" th:text="${#strings.substring(sponsor.name,0,2).toUpperCase()}">TC</div>
-        <div>
-            <div class="avatar-name" th:text="${sponsor.name}">TechCorp Inc.</div>
-            <div class="avatar-sub">Sponsor</div>
+        <div class="user-avatar-sm" id="sidebarAvatar">SP</div>
+        <div class="user-details">
+            <h4 id="sidebarName">Organization</h4>
+            <p>Sponsor</p>
         </div>
+        <button class="logout-btn" onclick="logout()" title="Log out">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+        </button>
     </div>
 </aside>
 
-<main class="main">
-    <div class="topbar">
-        <h1>Sponsor Dashboard</h1>
-        <a href="/sponsor/reports/export" class="export-btn">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
-            </svg>Export Report
-        </a>
-    </div>
+<div class="main">
+    <header class="topbar">
+        <span class="topbar-title">Dashboard</span>
+        <div class="topbar-right">
+            <a href="sponsor-reports.html" class="btn btn-ghost btn-sm">
+                <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Export Report
+            </a>
+        </div>
+    </header>
 
-    <div class="content">
+    <div class="page">
 
-        <!-- QUICK ACTIONS -->
+        <!-- Quick Actions -->
         <div class="quick-actions">
-            <span class="qa-label">⚡ Quick Actions:</span>
-            <a class="qa-btn blue"   href="/sponsor/sponsorships/new">🤝 New Sponsorship</a>
-            <a class="qa-btn pink"   href="/sponsor/coupons/generate">🎟️ Generate Coupons</a>
-            <a class="qa-btn purple" href="/sponsor/internships/post">💼 Post Internship</a>
-            <a class="qa-btn teal"   href="/sponsor/pools/fund">➕ Fund Pools</a>
+            <span class="qa-label">Quick Actions</span>
+            <a class="qa-btn" href="sponsor-sponsorships.html">
+                <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                New Sponsorship
+            </a>
+            <a class="qa-btn" href="sponsor-coupons.html">
+                <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 12V22H4V12"/><path d="M22 7H2v5h20V7z"/></svg>
+                Generate Coupon
+            </a>
+            <a class="qa-btn" href="sponsor-sponsorships.html">
+                <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3H8a2 2 0 0 0-2 2v2h12V5a2 2 0 0 0-2-2z"/></svg>
+                Post Internship
+            </a>
+            <a class="qa-btn" href="sponsor-talent.html">
+                <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                View Talent
+            </a>
         </div>
 
-        <!-- ANALYTICS & METRICS -->
-        <div class="section-box">
+        <!-- Analytics & Metrics -->
+        <div class="card">
             <div class="section-head">
-                <div class="section-title">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#4f6ef7" stroke-width="2">
-                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-                    </svg>
-                    Analytics &amp; Metrics
-                </div>
-                <button class="monthly-btn">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="4" width="18" height="18" rx="2"/>
-                        <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-                    </svg>
-                    Monthly View
-                </button>
+                <span class="section-title">Analytics &amp; Metrics</span>
+                <a href="sponsor-reports.html" class="btn btn-ghost btn-sm">Monthly View</a>
             </div>
             <div class="metrics-row">
                 <div class="metric-card">
-                    <div class="metric-icon ic-blue">💳</div>
-                    <div class="m-label">Credit Usage Tracking</div>
-                    <div class="m-value" th:text="${metrics.creditsUsed}">8,450</div>
-                    <div class="m-change g">↑ <span th:text="${metrics.creditChange}">12%</span> from last month</div>
-                    <div class="m-sub">Credits used this month</div>
+                    <div class="metric-icon ic-indigo">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+                    </div>
+                    <div class="metric-label">Credit Usage</div>
+                    <div class="metric-value" id="metricCredits">—</div>
+                    <div class="metric-sub">Credits used this month</div>
                 </div>
                 <div class="metric-card">
-                    <div class="metric-icon ic-green">📊</div>
-                    <div class="m-label">Popular Skills Analytics</div>
-                    <div class="m-value" th:text="${metrics.popularSkills}">42</div>
-                    <div class="m-change g">↑ <span th:text="${metrics.skillsChange}">8%</span> increase</div>
-                    <div class="m-sub">High-demand skills</div>
+                    <div class="metric-icon ic-green">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                    </div>
+                    <div class="metric-label">Skills Covered</div>
+                    <div class="metric-value" id="metricSkills">—</div>
+                    <div class="metric-sub">Across active programs</div>
                 </div>
                 <div class="metric-card">
-                    <div class="metric-icon ic-amber">📋</div>
-                    <div class="m-label">Impact Reports</div>
-                    <div class="m-value" th:text="${metrics.impactReports}">4</div>
-                    <div class="m-change a">✅ Q3 2023 available</div>
-                    <div class="m-sub">Monthly/Quarterly reports</div>
+                    <div class="metric-icon ic-amber">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                    </div>
+                    <div class="metric-label">Active Programs</div>
+                    <div class="metric-value" id="metricActivePrograms">—</div>
+                    <div class="metric-sub">Currently running</div>
                 </div>
                 <div class="metric-card">
-                    <div class="metric-icon ic-purple">👥</div>
-                    <div class="m-label">Participation Metrics</div>
-                    <div class="m-value" th:text="${metrics.participation + '%'}">89%</div>
-                    <div class="m-change r">↓ <span th:text="${metrics.participationChange}">2%</span> from last month</div>
-                    <div class="m-sub">Funded programs engagement</div>
+                    <div class="metric-icon ic-purple">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    </div>
+                    <div class="metric-label">Participation</div>
+                    <div class="metric-value" id="metricParticipation">—</div>
+                    <div class="metric-sub">Coupon usage rate</div>
                 </div>
             </div>
         </div>
 
-        <!-- ACTIVE PROGRAMS -->
-        <div class="section-box">
+        <!-- Active Programs -->
+        <div class="card">
             <div class="section-head">
-                <div class="section-title">Active Programs Overview</div>
-                <a class="add-btn" href="/sponsor/programs/new">+ Add New Program</a>
+                <span class="section-title">Active Programs</span>
+                <a class="btn btn-primary btn-sm" href="sponsor-sponsorships.html">
+                    <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    Add Program
+                </a>
             </div>
-            <div class="programs-grid">
-                <div class="program-card" th:each="program : ${programs}">
-                    <span class="badge"
-                          th:classappend="${program.status == 'ACTIVE'} ? 'active' : (${program.status == 'PENDING'} ? 'pending' : 'inactive')"
-                          th:text="${program.status}">Active</span>
-                    <div class="prog-title" th:text="${program.title}">Tech Scholarship Program 2023</div>
-                    <div class="prog-desc"  th:text="${program.description}">Funding scholarships for 50 students in software development</div>
-                </div>
-                <div class="empty" th:if="${programs.empty}" style="grid-column:1/-1">
-                    No active programs. <a href="/sponsor/programs/new">Create one →</a>
-                </div>
+            <div id="programsGrid" class="programs-grid">
+                <div class="empty-state" style="grid-column:1/-1">Loading…</div>
             </div>
         </div>
 
-        <!-- COUPONS -->
-        <div class="section-box">
+        <!-- Active Coupons -->
+        <div class="card">
             <div class="section-head">
-                <div class="section-title">🎟️ Active Coupons</div>
-                <a class="add-btn" href="/sponsor/coupons/generate">+ Generate Coupon</a>
+                <span class="section-title">Active Coupons</span>
+                <a class="btn btn-primary btn-sm" href="sponsor-coupons.html">
+                    <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    Generate
+                </a>
             </div>
-            <div class="coupons-list">
-                <div class="coupon-row" th:each="coupon : ${coupons}">
-                    <div>
-                        <div class="coupon-code"   th:text="${coupon.code}">TECH2024</div>
-                        <div class="coupon-detail" th:text="${coupon.discount + '% off · Expires ' + coupon.expiryDate}">20% off · Expires Dec 2024</div>
-                    </div>
-                    <div class="coupon-right">
-                        <div class="coupon-uses" th:text="${coupon.usedCount + '/' + coupon.maxUses + ' used'}">45/100 used</div>
-                        <span class="badge"
-                              th:classappend="${coupon.active} ? 'active' : 'inactive'"
-                              th:text="${coupon.active} ? 'Active' : 'Expired'">Active</span>
-                    </div>
-                </div>
-                <div class="empty" th:if="${coupons.empty}">
-                    No coupons yet. <a href="/sponsor/coupons/generate">Generate one →</a>
-                </div>
+            <div id="couponsList" class="coupons-list">
+                <div class="empty-state">Loading…</div>
             </div>
         </div>
 
     </div>
-</main>
+</div>
+
+<script>
+    const token = localStorage.getItem('jwtToken');
+    if (!token) { window.location.href = '/login.html'; }
+
+    function authHeaders() {
+        return { 'Authorization': 'Bearer ' + token };
+    }
+
+    function escHtml(str) {
+        const d = document.createElement('div');
+        d.textContent = str != null ? String(str) : '';
+        return d.innerHTML;
+    }
+
+    async function loadUserInfo() {
+        try {
+            const res = await fetch('/api/auth/me', { headers: authHeaders() });
+            if (res.ok) {
+                const u = await res.json();
+                const name = u.name || u.username || 'Sponsor';
+                document.getElementById('sidebarName').textContent = name;
+                document.getElementById('sidebarAvatar').textContent = name.substring(0, 2).toUpperCase();
+            }
+        } catch (e) { /* non-blocking */ }
+    }
+
+    async function loadStats() {
+        try {
+            const res = await fetch('/api/sponsors/me/stats', { headers: authHeaders() });
+            if (!res.ok) return;
+            const data = await res.json();
+            document.getElementById('metricCredits').textContent       = data.creditsUsed ?? 0;
+            document.getElementById('metricSkills').textContent        = data.popularSkills ?? 0;
+            document.getElementById('metricActivePrograms').textContent = data.impactReports ?? 0;
+            document.getElementById('metricParticipation').textContent = (data.participation ?? 0) + '%';
+        } catch (e) { /* non-blocking */ }
+    }
+
+    async function loadPrograms() {
+        try {
+            const res = await fetch('/api/sponsors/programs', { headers: authHeaders() });
+            if (!res.ok) return;
+            const programs = await res.json();
+            const grid = document.getElementById('programsGrid');
+            if (programs.length === 0) {
+                grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1">No programs yet. <a href="sponsor-sponsorships.html">Create one</a></div>';
+                return;
+            }
+            grid.innerHTML = programs.map(p => {
+                const cls = p.status === 'ACTIVE' ? 'badge-active'
+                          : p.status === 'PENDING' ? 'badge-pending'
+                          : 'badge-inactive';
+                return `<div class="program-card">
+                    <span class="badge ${cls}">${escHtml(p.status)}</span>
+                    <div class="prog-title">${escHtml(p.title)}</div>
+                    <div class="prog-desc">${escHtml(p.description)}</div>
+                </div>`;
+            }).join('');
+        } catch (e) { /* non-blocking */ }
+    }
+
+    async function loadCoupons() {
+        try {
+            const res = await fetch('/api/sponsors/coupons', { headers: authHeaders() });
+            if (!res.ok) return;
+            const coupons = await res.json();
+            const list = document.getElementById('couponsList');
+            if (coupons.length === 0) {
+                list.innerHTML = '<div class="empty-state">No coupons yet. <a href="sponsor-coupons.html">Generate one</a></div>';
+                return;
+            }
+            list.innerHTML = coupons.map(c => {
+                const cls   = c.active ? 'badge-active' : 'badge-inactive';
+                const label = c.active ? 'Active' : 'Expired';
+                const exp   = c.expiryDate || 'N/A';
+                return `<div class="coupon-row">
+                    <div>
+                        <div class="coupon-code">${escHtml(c.code)}</div>
+                        <div class="coupon-detail">${escHtml(c.discount)}% off · Expires ${escHtml(exp)}</div>
+                    </div>
+                    <div class="coupon-right">
+                        <div class="coupon-uses">${escHtml(c.usedCount)}/${escHtml(c.maxUses)} used</div>
+                        <span class="badge ${cls}">${label}</span>
+                    </div>
+                </div>`;
+            }).join('');
+        } catch (e) { /* non-blocking */ }
+    }
+
+    function logout() {
+        localStorage.removeItem('jwtToken');
+        document.cookie = 'jwtToken=; path=/; max-age=0';
+        window.location.href = '/login.html';
+    }
+
+    loadUserInfo();
+    loadStats();
+    loadPrograms();
+    loadCoupons();
+</script>
 </body>
 </html>

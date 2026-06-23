@@ -1,5 +1,5 @@
 // repository/UserPreferencesRepository.java
-package repository;
+package src.main.java.repository;
 
 import model.User;
 import model.UserPreferences;

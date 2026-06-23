@@ -1,5 +1,5 @@
 // repository/NotificationRepository.java
-package repository;
+package src.main.java.repository;
 
 import model.Notification;
 import model.User;

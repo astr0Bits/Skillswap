@@ -1,0 +1,1358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SkillSwap – Browse Skills & Mentors</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;0,9..144,700;1,9..144,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* (styles unchanged – same as original) */
+        :root {
+            --indigo:       #4f46e5;
+            --indigo-dark:  #3730a3;
+            --indigo-light: #eef2ff;
+            --green:        #10b981;
+            --amber:        #f59e0b;
+            --rose:         #f43f5e;
+            --text:         #0f172a;
+            --muted:        #64748b;
+            --border:       #e8edf5;
+            --bg:           #f5f7fc;
+            --white:        #ffffff;
+            --radius:       12px;
+            --shadow-sm:    0 1px 4px rgba(0,0,0,0.05);
+            --shadow:       0 4px 20px rgba(0,0,0,0.06);
+        }
+
+        *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+        body {
+            font-family:'DM Sans',sans-serif;
+            background:var(--bg); color:var(--text);
+            min-height:100vh; display:flex;
+            font-size:14px;
+        }
+
+        a { text-decoration:none; color:inherit; }
+
+        /* Sidebar (unchanged) */
+        .sidebar {
+            width: 220px;
+            background: var(--white);
+            border-right: 1px solid var(--border);
+            height: 100vh;
+            position: fixed;
+            left: 0; top: 0;
+            display: flex;
+            flex-direction: column;
+            z-index: 100;
+        }
+
+        .sidebar-logo {
+            display: flex; align-items: center; gap: 8px;
+            padding: 18px 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .sidebar-logo-icon {
+            width: 28px; height: 28px;
+            background: var(--indigo); border-radius: 7px;
+            display: flex; align-items: center; justify-content: center;
+            color: white; flex-shrink: 0;
+        }
+
+        .sidebar-logo-text {
+            font-family: 'Fraunces', serif;
+            font-size: 17px; font-weight: 600;
+            color: var(--indigo);
+        }
+
+        .nav-section { padding: 14px 10px; flex: 1; overflow-y: auto; }
+
+        .nav-label {
+            font-size: 10px; font-weight: 500;
+            letter-spacing: 1.2px; text-transform: uppercase;
+            color: var(--muted); padding: 0 8px;
+            margin-bottom: 4px; margin-top: 14px;
+        }
+        .nav-label:first-child { margin-top: 0; }
+
+        .nav-link {
+            display: flex; align-items: center; gap: 8px;
+            padding: 8px 10px; border-radius: 8px;
+            color: var(--muted); font-size: 13.5px; font-weight: 400;
+            transition: all 0.15s; margin-bottom: 1px;
+        }
+        .nav-link:hover { background: var(--indigo-light); color: var(--indigo); }
+        .nav-link.active { background: var(--indigo-light); color: var(--indigo); font-weight: 500; }
+
+        .sidebar-footer {
+            padding: 12px 14px;
+            border-top: 1px solid var(--border);
+            display: flex; align-items: center; gap: 8px;
+        }
+
+        .user-avatar-sm {
+            width: 32px; height: 32px;
+            background: linear-gradient(135deg, var(--indigo), #818cf8);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            color: white; font-family: 'Fraunces', serif;
+            font-size: 13px; font-weight: 600; flex-shrink: 0;
+        }
+
+        .user-info h4 { font-size: 12.5px; font-weight: 500; }
+        .user-info p  { font-size: 11px; color: var(--muted); }
+
+        .logout-btn {
+            margin-left: auto; background: none; border: none;
+            cursor: pointer; color: var(--muted);
+            padding: 3px; border-radius: 5px;
+            transition: color 0.2s; display: flex;
+        }
+        .logout-btn:hover { color: var(--rose); }
+
+        /* Main wrapper */
+        .main {
+            margin-left: 220px;
+            flex: 1; display: flex; flex-direction: column; min-width: 0;
+        }
+
+        /* Topbar (unchanged) */
+        .topbar {
+            background: rgba(245,247,252,0.92);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border);
+            padding: 11px 28px;
+            display: flex; align-items: center; gap: 16px;
+            position: sticky; top: 0; z-index: 50;
+        }
+
+        .topbar-title {
+            font-family: 'Fraunces', serif;
+            font-size: 1.15rem; font-weight: 600;
+            color: var(--indigo); white-space: nowrap;
+        }
+
+        .search-wrap {
+            flex: 1; max-width: 420px;
+            display: flex; background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: 50px; overflow: hidden;
+            transition: border-color .2s, box-shadow .2s;
+        }
+        .search-wrap:focus-within {
+            border-color: var(--indigo);
+            box-shadow: 0 0 0 3px rgba(79,70,229,.08);
+        }
+        .search-input {
+            flex: 1; padding: 8px 16px;
+            border: none; background: transparent;
+            font-family: 'DM Sans', sans-serif; font-size: .85rem; outline: none;
+        }
+        .search-btn {
+            padding: 0 16px; background: var(--indigo); color: white;
+            border: none; cursor: pointer; font-size: .85rem;
+            transition: background .2s;
+        }
+        .search-btn:hover { background: var(--indigo-dark); }
+
+        .notif-btn {
+            width: 34px; height: 34px; border-radius: 8px;
+            border: 1px solid var(--border); background: var(--white);
+            display: flex; align-items: center; justify-content: center;
+            color: var(--muted); cursor: pointer; position: relative;
+            transition: all .2s; flex-shrink: 0;
+        }
+        .notif-btn:hover { border-color: #c7d2fe; color: var(--indigo); }
+        .notif-dot {
+            width: 7px; height: 7px; background: var(--rose);
+            border-radius: 50%; position: absolute; top: 6px; right: 6px;
+            border: 1.5px solid var(--white);
+        }
+
+        /* Page content */
+        .page { padding: 24px 28px; flex: 1; }
+
+        .page-header { margin-bottom: 20px; }
+        .page-title {
+            font-family: 'Fraunces', serif;
+            font-size: 1.55rem; font-weight: 700;
+            letter-spacing: -.3px; margin-bottom: 3px;
+        }
+        .page-subtitle { color: var(--muted); font-size: .83rem; }
+
+        /* Browse layout */
+        .browse-layout {
+            display: flex; gap: 18px; align-items: flex-start;
+        }
+
+        /* Filter panel (unchanged HTML) */
+        .filter-panel {
+            width: 210px; flex-shrink: 0;
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+            position: sticky; top: 68px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .filter-section {
+            padding: 13px 14px;
+            border-bottom: 1px solid var(--border);
+        }
+        .filter-section:last-of-type { border-bottom: none; }
+
+        .filter-title {
+            font-size: .71rem; font-weight: 600;
+            text-transform: uppercase; letter-spacing: .8px;
+            color: var(--muted); margin-bottom: 9px;
+            display: flex; align-items: center; gap: 5px;
+        }
+        .filter-title i { color: var(--indigo); font-size: .67rem; }
+
+        .radio-group, .checkbox-group {
+            display: flex; flex-direction: column; gap: 1px;
+        }
+        .radio-group label, .checkbox-group label {
+            display: flex; align-items: center; gap: 7px;
+            padding: 5px 6px; cursor: pointer; font-size: .81rem;
+            border-radius: 6px; transition: background .12s; color: var(--text);
+        }
+        .radio-group label:hover, .checkbox-group label:hover {
+            background: var(--indigo-light);
+        }
+        input[type="radio"], input[type="checkbox"] {
+            accent-color: var(--indigo); width: 13px; height: 13px; flex-shrink: 0;
+        }
+
+        .cat-list { display: flex; flex-direction: column; gap: 1px; }
+        .cat-tag {
+            padding: 5px 7px; border-radius: 6px;
+            font-size: .79rem; cursor: pointer;
+            transition: all .14s; color: var(--muted);
+            display: flex; align-items: center; gap: 5px;
+        }
+        .cat-tag:hover { background: var(--indigo-light); color: var(--indigo); }
+        .cat-tag.active { background: var(--indigo); color: white; }
+
+        .loc-select {
+            width: 100%; padding: 7px 9px; border-radius: 7px;
+            border: 1px solid var(--border);
+            font-family: 'DM Sans', sans-serif; font-size: .81rem;
+            outline: none; transition: border-color .2s; color: var(--text);
+            background: var(--white);
+        }
+        .loc-select:focus { border-color: var(--indigo); }
+
+        .filter-actions {
+            padding: 12px 14px;
+            display: flex; flex-direction: column; gap: 5px;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 8px 15px; border-radius: 8px;
+            font-family: 'DM Sans', sans-serif; font-size: .81rem; font-weight: 500;
+            cursor: pointer; border: none;
+            display: inline-flex; align-items: center;
+            justify-content: center; gap: 5px;
+            transition: all .18s; text-decoration: none;
+        }
+        .btn-primary { background: var(--indigo); color: white; }
+        .btn-primary:hover { background: var(--indigo-dark); box-shadow: 0 3px 10px rgba(79,70,229,.22); }
+        .btn-ghost { background: transparent; color: var(--muted); font-size: .77rem; }
+        .btn-ghost:hover { color: var(--rose); }
+        .btn-outline { background: var(--white); border: 1px solid var(--indigo); color: var(--indigo); }
+        .btn-outline:hover { background: var(--indigo-light); }
+        .btn-sm { padding: 6px 12px; font-size: .77rem; }
+
+        /* Content area */
+        .content-area { flex: 1; min-width: 0; }
+
+        .results-bar {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 14px;
+        }
+        .results-count { font-size: .88rem; font-weight: 600; }
+        .results-avail { font-size: .75rem; color: var(--green); margin-top: 1px; }
+
+        .view-toggle {
+            display: flex; background: var(--white);
+            border: 1px solid var(--border); border-radius: 7px; overflow: hidden;
+        }
+        .view-btn {
+            padding: 6px 11px; font-size: .8rem;
+            border: none; background: transparent;
+            cursor: pointer; color: var(--muted); transition: all .15s;
+        }
+        .view-btn.active { background: var(--indigo); color: white; }
+
+        /* Mentor cards */
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(256px, 1fr));
+            gap: 14px; margin-bottom: 24px;
+        }
+        .results-grid.list-view {
+            display: flex; flex-direction: column; gap: 10px;
+        }
+
+        .mentor-card {
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+            transition: box-shadow .2s, transform .2s, border-color .2s;
+            position: relative;
+        }
+        .mentor-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0,0,0,.08);
+            border-color: #c7d2fe;
+        }
+
+        .card-top {
+            padding: 16px 16px 0 16px;
+            display: flex; align-items: flex-start; gap: 11px;
+        }
+
+        .profile-img {
+            width: 46px; height: 46px;
+            border-radius: 50%; flex-shrink: 0;
+            overflow: hidden;
+            border: 2px solid var(--border);
+        }
+        .profile-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+        .card-identity { flex: 1; min-width: 0; padding-top: 1px; }
+        .mentor-name {
+            font-size: .9rem; font-weight: 600;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .mentor-title {
+            font-size: .74rem; color: var(--muted);
+            margin-top: 1px;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .mentor-rating {
+            display: flex; align-items: center; gap: 3px;
+            font-size: .76rem; font-weight: 600; color: var(--amber);
+            margin-top: 3px;
+        }
+
+        .card-actions-top {
+            display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0;
+        }
+        .save-btn {
+            width: 28px; height: 28px; border-radius: 50%;
+            background: var(--bg); border: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: center;
+            color: var(--muted); cursor: pointer; transition: all .18s;
+            font-size: .74rem;
+        }
+        .save-btn:hover, .save-btn.saved { color: var(--rose); border-color: var(--rose); background: #fff0f3; }
+
+        .new-badge {
+            background: var(--green); color: white;
+            padding: 2px 7px; border-radius: 4px;
+            font-size: .64rem; font-weight: 700; letter-spacing: .3px;
+        }
+
+        .card-body { padding: 11px 16px 13px; }
+
+        .skill-tags {
+            display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px;
+        }
+        .stag {
+            background: var(--indigo-light); color: var(--indigo);
+            padding: 2px 8px; border-radius: 20px;
+            font-size: .7rem; font-weight: 500;
+        }
+
+        .card-meta {
+            display: flex; align-items: center; gap: 12px;
+            font-size: .73rem; color: var(--muted); margin-bottom: 9px;
+        }
+        .card-meta span { display: flex; align-items: center; gap: 3px; }
+
+        .badge-strip { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 9px; }
+        .mbadge {
+            padding: 2px 7px; border-radius: 4px;
+            font-size: .67rem; font-weight: 600;
+        }
+        .mbadge-star   { background: #fef3c7; color: #92400e; }
+        .mbadge-master { background: var(--indigo-light); color: var(--indigo); }
+        .mbadge-verify { background: #d1fae5; color: #065f46; }
+
+        .avail-chip {
+            display: inline-flex; align-items: center; gap: 5px;
+            font-size: .72rem; color: var(--muted);
+        }
+        .avail-chip i { color: var(--green); font-size: .6rem; }
+
+        .card-foot {
+            padding: 10px 16px;
+            border-top: 1px solid var(--border);
+            display: flex; align-items: center; gap: 7px;
+        }
+        .card-foot .btn { flex: 1; padding: 7px 10px; font-size: .77rem; }
+
+        /* Pagination (static, can be enhanced) */
+        .pagination {
+            display: flex; justify-content: center;
+            align-items: center; gap: 5px; margin-top: 4px;
+        }
+        .pg-btn {
+            width: 32px; height: 32px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            background: var(--white); border: 1px solid var(--border);
+            font-size: .82rem; font-weight: 600; cursor: pointer;
+            transition: all .18s; color: var(--text);
+        }
+        .pg-btn.active { background: var(--indigo); color: white; border-color: var(--indigo); }
+        .pg-btn:hover:not(.active) { background: var(--indigo-light); border-color: #c7d2fe; }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center; padding: 52px 20px;
+            background: var(--white); border: 1px solid var(--border);
+            border-radius: var(--radius); grid-column: 1/-1;
+        }
+        .empty-state i { font-size: 2.8rem; color: var(--border); margin-bottom: 14px; display: block; }
+        .empty-state h3 { font-family: 'Fraunces', serif; font-size: 1.1rem; margin-bottom: 6px; }
+        .empty-state p { color: var(--muted); font-size: .85rem; max-width: 380px; margin: 0 auto 18px; }
+
+        /* SEARCH RESULTS */
+        #searchResults {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 18px;
+        }
+
+        .rec-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 12px;
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .rec-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            background: var(--indigo-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--indigo);
+            flex-shrink: 0;
+        }
+
+        .rec-info {
+            flex: 1;
+        }
+
+        .rec-info h4 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .rec-info p {
+            font-size: 0.8rem;
+            color: var(--muted);
+            margin-bottom: 2px;
+        }
+
+        @media (max-width: 900px) {
+            .sidebar { width: 52px; }
+            .sidebar-logo-text, .nav-link span, .nav-label, .user-info, .logout-btn { display: none; }
+            .nav-link { justify-content: center; padding: 8px; }
+            .main { margin-left: 52px; }
+        }
+        @media (max-width: 1050px) { .filter-panel { display: none; } }
+        @media (max-width: 640px) {
+            .page { padding: 16px; }
+            .results-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════ SIDEBAR ══════════════════════════════════════ -->
+<aside class="sidebar">
+    <a href="/dashboard.html" class="sidebar-logo">
+        <div class="sidebar-logo-icon">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+            </svg>
+        </div>
+        <span class="sidebar-logo-text">SkillSwap</span>
+    </a>
+
+    <nav class="nav-section">
+        <p class="nav-label">Main</p>
+        <a href="/dashboard.html" class="nav-link">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            <span>Dashboard</span>
+        </a>
+        <a href="/userProfile.html" class="nav-link">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <span>Profile</span>
+        </a>
+        <a href="/chat.html" class="nav-link">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            <span>Messages</span>
+        </a>
+        <p class="nav-label">Discover</p>
+        <a href="/ai-matching.html" class="nav-link">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+            <span>AI Matching</span>
+        </a>
+        <a href="/browse-skills.html" class="nav-link active">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <span>Browse Skills</span>
+        </a>
+        <a href="/sessions.html" class="nav-link">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+            <span>Sessions</span>
+        </a>
+    </nav>
+
+    <div class="sidebar-footer">
+        <div class="user-avatar-sm" id="sidebarAvatar">S</div>
+        <div class="user-info">
+            <h4 id="sidebarName">Sarah</h4>
+            <p id="sidebarRole">Learner &amp; Mentor</p>
+        </div>
+        <button class="logout-btn" id="logoutBtn" title="Log out">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>
+            </svg>
+        </button>
+    </div>
+</aside>
+
+<!-- ══════════════════════════════════════ MAIN ══════════════════════════════════════ -->
+<div class="main">
+
+    <header class="topbar">
+        <span class="topbar-title">Browse Mentors</span>
+        <div class="search-wrap">
+            <input type="text" class="search-input" id="mainSearch" placeholder="Search skills, mentors, topics…">
+            <button class="search-btn" id="searchBtn"><i class="fas fa-search"></i></button>
+        </div>
+        <button class="notif-btn" aria-label="Notifications">
+            <i class="fas fa-bell" style="font-size:.8rem;"></i>
+            <span class="notif-dot"></span>
+        </button>
+    </header>
+
+    <div class="page">
+        <div class="browse-layout">
+
+            <!-- ─── FILTER PANEL ─── -->
+            <aside class="filter-panel" id="filterPanel">
+
+                <div class="filter-section">
+                    <h4 class="filter-title"><i class="fas fa-tag"></i> Skill Categories</h4>
+                    <div class="cat-list" id="skillCats">
+                        <div class="cat-tag" data-category="technical">💻 Technical / Programming</div>
+                        <div class="cat-tag" data-category="data">📊 Data &amp; Analytics</div>
+                        <div class="cat-tag" data-category="business">💼 Business &amp; Management</div>
+                        <div class="cat-tag" data-category="soft-skills">🤝 Soft Skills / Interpersonal</div>
+                        <div class="cat-tag" data-category="cooking">🍳 Cooking &amp; Culinary</div>
+                        <div class="cat-tag" data-category="languages">🌍 Languages</div>
+                        <div class="cat-tag" data-category="crafts">🎨 Crafts &amp; Making</div>
+                        <div class="cat-tag" data-category="sports">🏃 Sports &amp; Fitness</div>
+                        <div class="cat-tag" data-category="music">🎵 Music &amp; Performing Arts</div>
+                        <div class="cat-tag" data-category="home">🏡 Home &amp; Lifestyle</div>
+                    </div>
+                </div>
+
+                <div class="filter-section">
+                    <h4 class="filter-title"><i class="fas fa-laptop-house"></i> Session Mode</h4>
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" name="mode" value="online"> Online</label>
+                        <label><input type="checkbox" name="mode" value="in-person"> In-Person</label>
+                    </div>
+                </div>
+
+                <div class="filter-section">
+                    <h4 class="filter-title"><i class="fas fa-map-marker-alt"></i> Location</h4>
+                    <select class="loc-select" id="locationSelect">
+                        <option value="">All Locations</option>
+                        <option value="dubai">Dubai</option>
+                        <option value="abudhabi">Abu Dhabi</option>
+                        <option value="sharjah">Sharjah</option>
+                        <option value="ajman">Ajman</option>
+                        <option value="rasalkhaimah">Ras Al Khaimah</option>
+                        <option value="fujairah">Fujairah</option>
+                    </select>
+                </div>
+
+                <div class="filter-section">
+                    <h4 class="filter-title"><i class="fas fa-star"></i> Min Rating</h4>
+                    <div class="radio-group">
+                        <label><input type="radio" name="rating" value="4.5"> 4.5+ Stars</label>
+                        <label><input type="radio" name="rating" value="4.0"> 4.0+ Stars</label>
+                        <label><input type="radio" name="rating" value="0" checked> Any</label>
+                    </div>
+                </div>
+
+                <div class="filter-section">
+                    <h4 class="filter-title"><i class="fas fa-chart-bar"></i> Experience</h4>
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" name="experience" value="BEGINNER"> Beginner</label>
+                        <label><input type="checkbox" name="experience" value="INTERMEDIATE"> Intermediate</label>
+                        <label><input type="checkbox" name="experience" value="ADVANCED"> Advanced</label>
+                        <label><input type="checkbox" name="experience" value="EXPERT"> Expert</label>
+                    </div>
+                </div>
+
+                <div class="filter-actions">
+                    <button class="btn btn-primary" id="applyFilters" style="width:100%"><i class="fas fa-check"></i> Apply Filters</button>
+                    <button class="btn btn-ghost" id="clearFilters">Clear all</button>
+                </div>
+
+            </aside>
+
+            <!-- ─── RESULTS ─── -->
+            <main class="content-area">
+
+                <!-- NEW SEARCH RESULTS LIST -->
+                <div id="searchResults"></div>
+
+                <div class="results-bar">
+                    <div>
+                        <div class="results-count" id="resultsCount">Loading…</div>
+                        <div class="results-avail" id="resultsAvail"></div>
+                    </div>
+                    <div class="view-toggle">
+                        <button class="view-btn active" id="gridViewBtn" title="Grid"><i class="fas fa-th-large"></i></button>
+                        <button class="view-btn" id="listViewBtn" title="List"><i class="fas fa-list"></i></button>
+                    </div>
+                </div>
+
+                <div class="results-grid" id="resultsGrid"></div>
+
+                <div class="empty-state" id="emptyState" style="display:none">
+                    <i class="fas fa-search"></i>
+                    <h3>No mentors found</h3>
+                    <p>Try adjusting your filters or let AI Matching find the right mentor for you.</p>
+                    <a href="/ai-matching.html" class="btn btn-primary"><i class="fas fa-robot"></i> Try AI Matching</a>
+                </div>
+
+                <div class="pagination">
+                    <button class="pg-btn">«</button>
+                    <button class="pg-btn active">1</button>
+                    <button class="pg-btn">2</button>
+                    <button class="pg-btn">3</button>
+                    <button class="pg-btn">»</button>
+                </div>
+
+            </main>
+        </div>
+    </div>
+</div>
+
+<!-- ─── BOOKING MODAL ─── -->
+<div id="bookingModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);
+     z-index:2000;align-items:center;justify-content:center;">
+  <div style="background:white;max-width:520px;width:93%;border-radius:16px;
+              overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,0.22);margin:20px auto;
+              max-height:90vh;overflow-y:auto;">
+
+    <!-- Modal Header -->
+    <div style="background:linear-gradient(135deg,#4f46e5,#818cf8);padding:22px 26px;
+                position:sticky;top:0;z-index:1;">
+      <h3 style="margin:0;color:white;font-size:17px;"> Session Information</h3>
+      <p style="margin:5px 0 0;color:#c7d2fe;font-size:12px;">
+        Review all details before confirming your booking
+      </p>
+    </div>
+
+    <!-- Modal Body -->
+    <div style="padding:26px;" id="bookingModalBody"></div>
+
+    <!-- Modal Footer -->
+    <div style="padding:14px 26px 20px;display:flex;gap:10px;justify-content:flex-end;
+                border-top:1px solid #e2e8f0;position:sticky;bottom:0;background:white;">
+      <button onclick="closeBookingModal()"
+              style="padding:9px 18px;border-radius:8px;border:1px solid #e2e8f0;
+                     background:white;cursor:pointer;font-family:'DM Sans',sans-serif;
+                     font-size:.82rem;color:#64748b;">
+        Cancel
+      </button>
+      <button id="confirmBookBtn" onclick="confirmBooking()"
+              style="padding:9px 20px;border-radius:8px;border:none;
+                     background:#4f46e5;color:white;cursor:pointer;
+                     font-family:'DM Sans',sans-serif;font-size:.82rem;font-weight:600;">
+        Confirm &amp; Book Session
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+    // --------------------------------------------------------------
+    // 0. apiRequest helper (added for skill search)
+    // --------------------------------------------------------------
+  
+
+    // --------------------------------------------------------------
+    // 1. Global state
+    // --------------------------------------------------------------
+    let allMentors = [];
+    let currentFilters = {
+        categories: [],
+        mode: [],
+        location: '',
+        minRating: 0,
+        experience: [],
+        searchQuery: ''
+    };
+
+    // --------------------------------------------------------------
+    // 2. Authentication helpers (secure token handling)
+    // --------------------------------------------------------------
+    function getToken() {
+        return localStorage.getItem('jwtToken') ;
+    }
+
+    async function authFetch(url, options = {}) {
+        const token = getToken();
+        if (!token) {
+            window.location.href = '/login.html';
+            throw new Error('Not authenticated');
+        }
+        options.headers = {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+            ...options.headers
+        };
+        const response = await fetch(url, options);
+        if (response.status === 401) {
+            localStorage.removeItem('jwttoken');
+            localStorage.removeItem('user');
+            window.location.href = '/login.html';
+            throw new Error('Session expired');
+        }
+        return response;
+    }
+
+    // --------------------------------------------------------------
+    // 3. Load user data (sidebar)
+    // --------------------------------------------------------------
+    async function loadUserData() {
+        let user = null;
+        const cached = localStorage.getItem('user');
+        if (cached) {
+            try {
+                user = JSON.parse(cached);
+            } catch(e) {}
+        }
+
+        if (user) {
+            updateSidebar(user);
+            return user;
+        }
+
+        try {
+            const response = await authFetch('/api/users/me');
+            if (response.ok) {
+                user = await response.json();
+                localStorage.setItem('user', JSON.stringify(user));
+                updateSidebar(user);
+                return user;
+            }
+        } catch (err) {
+            console.error('Failed to load user:', err);
+        }
+        window.location.href = '/login.html';
+        return null;
+    }
+
+    function updateSidebar(user) {
+        const name = user.name || user.email.split('@')[0];
+        document.getElementById('sidebarAvatar').textContent = name.charAt(0).toUpperCase();
+        document.getElementById('sidebarName').textContent = name.split(' ')[0];
+        document.getElementById('sidebarRole').textContent = user.role || 'Member';
+    }
+
+    function logout() {
+        localStorage.removeItem('jwtToken');
+        localStorage.removeItem('user');
+        window.location.href = '/login.html';
+    }
+
+    // --------------------------------------------------------------
+    // 4. Fetch mentors from backend (secure, with token)
+    // --------------------------------------------------------------
+    async function fetchMentors() {
+        try {
+            const response = await authFetch('/api/browse/mentors');
+            if (!response.ok) throw new Error('Failed to fetch mentors');
+            const mentors = await response.json();
+            allMentors = mentors;
+            applyFilters();
+        } catch (err) {
+            console.error(err);
+            document.getElementById('resultsGrid').innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><h3>Error loading mentors</h3><p>Please refresh the page.</p></div>';
+            document.getElementById('resultsCount').textContent = 'Error';
+        }
+    }
+
+    // --------------------------------------------------------------
+    // 4.5 Search mentors by skill (NEW)
+    // --------------------------------------------------------------
+    
+async function searchSkills(query) {
+    try {
+        const response = await authFetch('/api/browse/skills?q=' + encodeURIComponent(query));
+        const container = document.getElementById('searchResults');
+        if (!response.ok) { container.innerHTML = ''; return; }
+        const results = await response.json();
+        
+        console.log("=== SKILL SEARCH RESULTS:", JSON.stringify(results[0])); // ADD THIS
+       
+        
+        if (!results.length) {
+            container.innerHTML = '<p style="color:var(--muted);text-align:center;padding:20px;">No mentors found for that skill.</p>';
+            return;
+        }
+        container.innerHTML = results.map(r => `
+            <div class="rec-item">
+                <div class="rec-icon"><i class="fas fa-user-graduate"></i></div>
+                <div class="rec-info">
+                    <h4>${escapeHtml(r.userName)}</h4>
+                    <p><strong>${escapeHtml(r.skillName)}</strong> · ${escapeHtml(r.category || 'General')}</p>
+                    <p style="font-size:0.75rem;color:var(--muted);">
+                        Level: ${escapeHtml(r.level || 'N/A')} &nbsp;·&nbsp;
+                        Mode: <strong>${escapeHtml(r.mode || 'ONLINE')}</strong>
+                    </p>
+                </div>
+                <button class="btn btn-primary btn-sm"
+                    onclick="openBookingModal(
+                        ${r.userId},
+                        '${escapeHtml(r.userName)}',
+                        '${escapeHtml(r.skillName)}',
+                        '${escapeHtml(r.category || 'General')}',
+                        '${escapeHtml(r.level || 'BEGINNER')}',
+                        '${escapeHtml(r.mode || 'ONLINE')}',
+                        ${r.skillId || 'null'}
+                    )">
+                     View &amp; Book
+                </button>
+            </div>
+        `).join('');
+    } catch(e) {
+        console.error('searchSkills error:', e);
+    }
+}
+
+
+    // --------------------------------------------------------------
+    // 5. Filtering logic (client-side)
+    // --------------------------------------------------------------
+    function applyFilters() {
+        currentFilters.categories = [...document.querySelectorAll('.cat-tag.active')].map(t => t.dataset.category);
+        currentFilters.mode = [...document.querySelectorAll('#filterPanel input[name="mode"]:checked')].map(cb => cb.value);
+        currentFilters.location = document.getElementById('locationSelect').value;
+        const ratingRadio = document.querySelector('input[name="rating"]:checked');
+        currentFilters.minRating = ratingRadio ? parseFloat(ratingRadio.value) : 0;
+        currentFilters.experience = [...document.querySelectorAll('#filterPanel input[name="experience"]:checked')].map(cb => cb.value);
+        currentFilters.searchQuery = document.getElementById('mainSearch').value.trim().toLowerCase();
+
+        let filtered = allMentors.filter(mentor => {
+            if (currentFilters.categories.length > 0) {
+                const mentorSkillNames = (mentor.skills || []).map(s => s.name.toLowerCase());
+                const matchesCategory = currentFilters.categories.some(cat =>
+                    mentorSkillNames.some(skillName => skillName.includes(cat))
+                );
+                if (!matchesCategory) return false;
+            }
+
+            if (currentFilters.mode.length > 0) {
+                const mentorModes = (mentor.modes || []).map(m => m.toLowerCase());
+                if (!currentFilters.mode.some(m => mentorModes.includes(m))) return false;
+            }
+
+            if (currentFilters.location && mentor.location) {
+                if (mentor.location.toLowerCase() !== currentFilters.location.toLowerCase()) return false;
+            }
+
+            if ((mentor.rating || 0) < currentFilters.minRating) return false;
+
+            if (currentFilters.experience.length > 0) {
+                const mentorLevels = (mentor.skills || []).map(s => s.level);
+                const hasLevel = currentFilters.experience.some(level => mentorLevels.includes(level));
+                if (!hasLevel) return false;
+            }
+
+            if (currentFilters.searchQuery) {
+                const q = currentFilters.searchQuery;
+                const nameMatch = (mentor.name || '').toLowerCase().includes(q);
+                const emailMatch = (mentor.email || '').toLowerCase().includes(q);
+                const skillMatch = (mentor.skills || []).some(s => s.name.toLowerCase().includes(q));
+                if (!nameMatch && !emailMatch && !skillMatch) return false;
+            }
+
+            return true;
+        });
+
+        renderMentors(filtered);
+    }
+
+    // --------------------------------------------------------------
+    // 6. Render mentor cards
+    // --------------------------------------------------------------
+    function renderMentors(mentorsList) {
+        const grid = document.getElementById('resultsGrid');
+        const empty = document.getElementById('emptyState');
+        const countSpan = document.getElementById('resultsCount');
+        const availSpan = document.getElementById('resultsAvail');
+
+        if (!mentorsList.length) {
+            grid.innerHTML = '';
+            empty.style.display = 'block';
+            countSpan.textContent = 'No mentors found';
+            availSpan.textContent = '';
+            return;
+        }
+
+        empty.style.display = 'none';
+        countSpan.textContent = `Showing ${mentorsList.length} mentor${mentorsList.length !== 1 ? 's' : ''}`;
+
+        const availableNow = mentorsList.filter(m => m.availability && m.availability.includes('week')).length;
+        availSpan.textContent = availableNow > 0 ? `${availableNow} available this week` : '';
+
+        grid.innerHTML = '';
+        mentorsList.forEach(mentor => {
+            grid.appendChild(createCard(mentor));
+        });
+    }
+
+    function createCard(mentor) {
+        const availLabel = (mentor.availability || []).includes('flexible')
+            ? 'Flexible schedule'
+            : (mentor.availability || []).map(a => ({ week:'This Week', weekends:'Weekends', evenings:'Evenings' }[a])).filter(Boolean).join(', ') || 'Not specified';
+
+        const modes = mentor.modes || [];
+        const modeText = modes.includes('online') && modes.includes('in-person')
+            ? 'Online & In-Person'
+            : modes.includes('online') ? 'Online Only' : 'In-Person Only';
+
+        const skillTags = (mentor.skills || []).map(skill => `<span class="stag">${escapeHtml(skill.name)}</span>`).join('');
+
+        const avatarUrl = `https://ui-avatars.com/api/?background=4f46e5&color=fff&name=${encodeURIComponent(mentor.name)}&size=46&bold=true&rounded=true`;
+
+        const sessionsCount = mentor.sessionsCount || 0;
+        const reviewsCount = mentor.reviewsCount || 0;
+        const badges = mentor.badges || [];
+        const isNew = false;
+
+        const badgeMap = {
+            'five-star': ['mbadge-star', '🏆 Five-Star'],
+            'master':    ['mbadge-master', 'Master'],
+            'verified':  ['mbadge-verify', '✓ Verified']
+        };
+
+        const card = document.createElement('div');
+        card.className = 'mentor-card';
+        card.dataset.id = mentor.id;
+
+        card.innerHTML = `
+            <div class="card-top">
+                <div class="profile-img"><img src="${avatarUrl}" alt="${escapeHtml(mentor.name)}" loading="lazy"></div>
+                <div class="card-identity">
+                    <div class="mentor-name">${escapeHtml(mentor.name)}</div>
+                    <div class="mentor-title">${escapeHtml(mentor.role || 'Mentor')} · ${escapeHtml(mentor.location || 'Remote')}</div>
+                    <div class="mentor-rating"><i class="fas fa-star" style="font-size:.63rem;"></i> ${(mentor.rating || 0).toFixed(1)}</div>
+                </div>
+                <div class="card-actions-top">
+                    <button class="save-btn" aria-label="Save"><i class="far fa-heart"></i></button>
+                    ${isNew ? '<span class="new-badge">NEW</span>' : ''}
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="skill-tags">${skillTags}</div>
+                <div class="card-meta">
+                    <span><i class="fas fa-comment-alt" style="font-size:.62rem;opacity:.55"></i> ${sessionsCount} sessions</span>
+                    <span><i class="fas fa-star" style="font-size:.62rem;opacity:.55"></i> ${reviewsCount} reviews</span>
+                </div>
+                ${badges.length ? `<div class="badge-strip">${badges.map(b => `<span class="mbadge ${badgeMap[b] ? badgeMap[b][0] : 'mbadge-verify'}">${badgeMap[b] ? badgeMap[b][1] : b}</span>`).join('')}</div>` : ''}
+                <div class="avail-chip"><i class="fas fa-circle"></i> ${availLabel} · ${modeText}</div>
+            </div>
+            <div class="card-foot">
+                <button class="btn btn-outline view-profile-btn">View Profile</button>
+                <button class="btn btn-primary req-session-btn">Request Session</button>
+            </div>
+        `;
+
+        card.querySelector('.save-btn').addEventListener('click', function(e) {
+            e.stopPropagation();
+            const i = this.querySelector('i');
+            const saved = i.classList.contains('fas');
+            i.classList.toggle('far', saved);
+            i.classList.toggle('fas', !saved);
+            this.classList.toggle('saved', !saved);
+            showToast(saved ? 'Removed from favourites.' : 'Saved to favourites!');
+        });
+
+        card.querySelector('.view-profile-btn').addEventListener('click', () => {
+            showToast(`Opening ${mentor.name}'s profile…`);
+        });
+
+        card.querySelector('.req-session-btn').addEventListener('click', () => {
+    // Find this mentor's first skill name to pass to openBookingModal
+    const firstSkill = (mentor.skills || [])[0];
+    const skillName = firstSkill ? firstSkill.name : '';
+    const skillCategory = firstSkill ? (firstSkill.category || 'General') : 'General';
+    const skillLevel = firstSkill ? (firstSkill.level || 'BEGINNER') : 'BEGINNER';
+
+    openBookingModal(
+        mentor.id,
+        mentor.name,
+        skillName,
+        skillCategory,
+        skillLevel,
+        'ONLINE',
+        firstSkill ? firstSkill.skillId : null
+    );
+});
+
+
+        return card;
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+
+    function showToast(msg) {
+        const prev = document.getElementById('_toast');
+        if (prev) prev.remove();
+        const t = document.createElement('div');
+        t.id = '_toast';
+        t.style.cssText = 'position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(10px);background:#0f172a;color:#fff;padding:9px 18px;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.18);z-index:4000;font-size:.81rem;font-weight:500;opacity:0;transition:opacity .2s,transform .2s;white-space:nowrap;';
+        t.textContent = msg;
+        document.body.appendChild(t);
+        requestAnimationFrame(() => { t.style.opacity='1'; t.style.transform='translateX(-50%) translateY(0)'; });
+        setTimeout(() => { t.style.opacity='0'; t.style.transform='translateX(-50%) translateY(10px)'; setTimeout(() => t.remove(), 220); }, 2600);
+    }
+
+    // --------------------------------------------------------------
+    // 7. Event binding & UI toggles
+    // --------------------------------------------------------------
+    function setupEvents() {
+        document.querySelectorAll('.cat-tag').forEach(tag => {
+            tag.addEventListener('click', function() {
+                this.classList.toggle('active');
+                applyFilters();
+            });
+        });
+
+        document.getElementById('applyFilters').addEventListener('click', applyFilters);
+        document.getElementById('clearFilters').addEventListener('click', () => {
+            document.querySelectorAll('.cat-tag.active').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('#filterPanel input[type="checkbox"]').forEach(cb => cb.checked = false);
+            document.querySelector('input[name="rating"][value="0"]').checked = true;
+            document.getElementById('locationSelect').value = '';
+            document.getElementById('mainSearch').value = '';
+            document.getElementById('searchResults').innerHTML = '';
+            applyFilters();
+        });
+
+        const searchInput = document.getElementById('mainSearch');
+        const searchBtn = document.getElementById('searchBtn');
+
+        const doSearch = () => {
+            const q = searchInput.value.trim();
+            if (q.length > 1) {
+                searchSkills(q);
+            } else {
+                document.getElementById('searchResults').innerHTML = '';
+            }
+            applyFilters();
+        };
+
+        searchBtn.addEventListener('click', doSearch);
+
+        searchInput.addEventListener('keyup', (e) => {
+            if (e.key === 'Enter') doSearch();
+        });
+
+        // AUTO search on typing
+        searchInput.addEventListener('input', (e) => {
+            if (e.target.value.length > 1) searchSkills(e.target.value);
+            else document.getElementById('searchResults').innerHTML = '';
+        });
+
+        const gridBtn = document.getElementById('gridViewBtn');
+        const listBtn = document.getElementById('listViewBtn');
+        const resultsGrid = document.getElementById('resultsGrid');
+
+        gridBtn.addEventListener('click', () => {
+            gridBtn.classList.add('active');
+            listBtn.classList.remove('active');
+            resultsGrid.classList.remove('list-view');
+        });
+
+        listBtn.addEventListener('click', () => {
+            listBtn.classList.add('active');
+            gridBtn.classList.remove('active');
+            resultsGrid.classList.add('list-view');
+        });
+    }
+    
+    // ── Booking state ───────────────────────────────────────────────
+let pendingBooking = null; // will hold { sessionId }
+
+async function openBookingModal(userId, userName, skillName, skillCategory, skillLevel, mode, skillId) {
+    const modal = document.getElementById('bookingModal');
+    const body = document.getElementById('bookingModalBody');
+    const btn = document.getElementById('confirmBookBtn');
+
+    // Show loading state immediately
+    modal.style.display = 'flex';
+    body.innerHTML = '<p style="text-align:center;padding:40px;color:#64748b;">Loading session details…</p>';
+    btn.disabled = true;
+
+    try {
+        // ── Fetch real available sessions for this mentor+skill ──
+		const res = await authFetch('/api/public-sessions/available');
+		const allSessions = await res.json();
+		
+		// DEBUG — remove after confirming it works
+		console.log('Sessions from API:', allSessions.map(s => ({
+		    id: s.id, mentorId: s.mentorId, skillId: s.skillId,
+		    skill: s.skillName, status: s.status
+		})));
+		console.log('Looking for: mentorId=', userId, 'skillId=', skillId, 'skillName=', skillName);
+		
+		// Match by skillId (most reliable) or fall back to skillName
+		const matchedSession = allSessions.find(s =>
+		    String(s.mentorId) === String(userId) &&
+		    skillId != null && s.skillId != null &&
+		    String(s.skillId) === String(skillId) &&
+		    s.status === 'OPEN'
+		) || allSessions.find(s =>
+		    String(s.mentorId) === String(userId) &&
+		    (s.skillName || '').toLowerCase().trim() === (skillName || '').toLowerCase().trim() &&
+		    s.status === 'OPEN'
+		) || allSessions.find(s =>
+		    String(s.mentorId) === String(userId) && s.status === 'OPEN'
+		);
+
+        if (!matchedSession) {
+            body.innerHTML = `
+                <div style="text-align:center;padding:32px 20px;">
+                    <div style="font-size:2rem;margin-bottom:12px;">📭</div>
+                    <h4 style="color:#0f172a;margin-bottom:6px;">No open session found</h4>
+                    <p style="color:#64748b;font-size:13px;">
+                        ${escapeHtml(userName)} hasn't published an open session for 
+                        <strong>${escapeHtml(skillName)}</strong> yet.<br>
+                        Check the Sessions page or try again later.
+                    </p>
+                    <a href="/sessions.html" style="display:inline-block;margin-top:16px;
+                       padding:9px 20px;background:#4f46e5;color:white;border-radius:8px;
+                       font-size:13px;font-weight:600;text-decoration:none;">
+                        Browse All Sessions
+                    </a>
+                </div>`;
+            btn.style.display = 'none';
+            return;
+        }
+
+        // ── We have a real session — store its ID ──
+        pendingBooking = { sessionId: matchedSession.id };
+        btn.disabled = false;
+        btn.style.display = '';
+
+        const s = matchedSession;
+        const isOnline = s.mode === 'ONLINE';
+        const spotsLeft = s.maxLearners - s.currentLearners;
+
+        const dateStr = s.scheduledTime
+            ? new Date(s.scheduledTime).toLocaleDateString('en-AE', {
+                weekday:'long', year:'numeric', month:'long',
+                day:'numeric', hour:'2-digit', minute:'2-digit'
+              })
+            : 'To be confirmed';
+
+        const modeSection = isOnline
+            ? `<div style="background:#eef2ff;border-radius:10px;padding:14px 16px;margin-bottom:12px;">
+                   <div style="font-weight:600;color:#4f46e5;margin-bottom:6px;">
+                       💻 Online Session via Microsoft Teams
+                   </div>
+                   <div style="font-size:13px;color:#475569;line-height:1.6;">
+                       A private Microsoft Teams meeting link will be generated and sent to
+                       your email immediately after booking. You can join from any device.
+                   </div>
+               </div>
+               <div style="background:#f0fdf4;border-radius:10px;padding:14px 16px;margin-bottom:12px;">
+                   <div style="font-weight:600;color:#065f46;margin-bottom:6px;">✅ What to prepare</div>
+                   <div style="font-size:13px;color:#374151;line-height:1.8;">
+                       ${s.toolsNeeded
+                           ? escapeHtml(s.toolsNeeded).replace(/\n/g,'<br>')
+                           : '• Stable internet connection (Wi-Fi recommended)<br>• Microsoft Teams installed — or open in your browser<br>• Notebook or digital notes app ready<br>• Any files or questions you want to discuss<br>• A quiet space free from distractions'}
+                   </div>
+               </div>`
+            : `<div style="background:#fef3c7;border-radius:10px;padding:14px 16px;margin-bottom:12px;">
+                   <div style="font-weight:600;color:#92400e;margin-bottom:6px;">
+                       📍 In-Person Session
+                   </div>
+                   <div style="font-size:13px;color:#78350f;line-height:1.6;">
+                       <strong>Location:</strong> ${escapeHtml(s.location || 'To be confirmed by mentor')}
+                   </div>
+               </div>
+               <div style="background:#f0fdf4;border-radius:10px;padding:14px 16px;margin-bottom:12px;">
+                   <div style="font-weight:600;color:#065f46;margin-bottom:6px;">🎒 What to bring</div>
+                   <div style="font-size:13px;color:#374151;line-height:1.8;">
+                       ${s.toolsNeeded
+                           ? escapeHtml(s.toolsNeeded).replace(/\n/g,'<br>')
+                           : '• Notebook and pen for notes<br>• Your laptop or tablet if relevant<br>• Any materials or questions prepared<br>• Water bottle<br>• Arrive 5 minutes early'}
+                   </div>
+               </div>`;
+
+        body.innerHTML = `
+            <div style="font-size:12px;font-weight:600;color:#64748b;text-transform:uppercase;
+                        letter-spacing:.8px;margin-bottom:12px;">Session Summary</div>
+            <table style="width:100%;font-size:14px;border-collapse:collapse;margin-bottom:18px;">
+              <tr>
+                <td style="padding:9px 0;border-bottom:1px solid #f1f5f9;color:#64748b;width:38%">🎓 Skill</td>
+                <td style="padding:9px 0;border-bottom:1px solid #f1f5f9;font-weight:600;">${escapeHtml(s.skillName)}</td>
+              </tr>
+              <tr>
+                <td style="padding:9px 0;border-bottom:1px solid #f1f5f9;color:#64748b;">👤 Mentor</td>
+                <td style="padding:9px 0;border-bottom:1px solid #f1f5f9;font-weight:600;">${escapeHtml(s.mentorName)}</td>
+              </tr>
+              <tr>
+                <td style="padding:9px 0;border-bottom:1px solid #f1f5f9;color:#64748b;">📅 Date & Time</td>
+                <td style="padding:9px 0;border-bottom:1px solid #f1f5f9;">${dateStr}</td>
+              </tr>
+              <tr>
+                <td style="padding:9px 0;border-bottom:1px solid #f1f5f9;color:#64748b;">⏱️ Duration</td>
+                <td style="padding:9px 0;border-bottom:1px solid #f1f5f9;">${s.durationMinutes} minutes</td>
+              </tr>
+              <tr>
+                <td style="padding:9px 0;border-bottom:1px solid #f1f5f9;color:#64748b;">🪑 Spots left</td>
+                <td style="padding:9px 0;border-bottom:1px solid #f1f5f9;">
+                    <span style="font-weight:600;color:${spotsLeft <= 1 ? '#f59e0b' : '#10b981'};">
+                        ${spotsLeft}
+                    </span> of ${s.maxLearners}
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:9px 0;color:#64748b;">📡 Format</td>
+                <td style="padding:9px 0;">
+                    <span style="background:${isOnline ? '#eef2ff' : '#fef3c7'};
+                                 color:${isOnline ? '#4f46e5' : '#92400e'};
+                                 padding:2px 10px;border-radius:20px;font-size:12px;font-weight:600;">
+                        ${isOnline ? '💻 Online' : '📍 In-Person'}
+                    </span>
+                </td>
+              </tr>
+            </table>
+
+            <div style="font-size:12px;font-weight:600;color:#64748b;text-transform:uppercase;
+                        letter-spacing:.8px;margin-bottom:12px;">
+                ${isOnline ? 'Online Details' : 'Location Details'}
+            </div>
+            ${modeSection}
+
+            ${s.description ? `
+            <div style="background:#f8faff;border-radius:10px;padding:14px;margin-bottom:12px;
+                        font-size:13px;color:#475569;line-height:1.6;border:1px solid #e2e8f0;">
+                <div style="font-weight:600;color:#0f172a;margin-bottom:6px;">📋 What you'll learn</div>
+                ${escapeHtml(s.description).replace(/\n/g,'<br>')}
+            </div>` : ''}
+
+            <div style="text-align:center;padding:10px 0 2px;">
+                <span style="font-size:12px;color:#94a3b8;">
+                    📧 A full confirmation email will be sent to your registered email address.
+                </span>
+            </div>`;
+
+    } catch(e) {
+        console.error('openBookingModal error:', e);
+        body.innerHTML = '<p style="text-align:center;color:#ef4444;padding:32px;">Failed to load session. Please try again.</p>';
+        btn.disabled = false;
+    }
+}
+
+function closeBookingModal() {
+    document.getElementById('bookingModal').style.display = 'none';
+    document.getElementById('confirmBookBtn').style.display = '';
+    pendingBooking = null;
+}
+
+async function confirmBooking() {
+    if (!pendingBooking || !pendingBooking.sessionId) {
+        showToast('❌ No session selected.');
+        return;
+    }
+
+    const btn = document.getElementById('confirmBookBtn');
+    btn.textContent = 'Joining…';
+    btn.disabled = true;
+
+    try {
+        const res = await authFetch(`/api/public-sessions/${pendingBooking.sessionId}/join`, {
+            method: 'POST'
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+            closeBookingModal();
+            showToast('🎉 Joined! Check your email for confirmation.');
+        } else {
+            showToast('❌ ' + (data.error || 'Could not join session.'));
+            btn.innerHTML = '✅ Confirm &amp; Book Session';
+            btn.disabled = false;
+        }
+    } catch(e) {
+        showToast('❌ Network error. Please try again.');
+        btn.innerHTML = '✅ Confirm &amp; Book Session';
+        btn.disabled = false;
+    }
+}
+
+document.getElementById('bookingModal').addEventListener('click', function(e) {
+    if (e.target === this) closeBookingModal();
+});
+
+    // --------------------------------------------------------------
+    // 8. Initialisation
+    // --------------------------------------------------------------
+    async function initPage() {
+        if (!getToken()) {
+            window.location.href = '/login.html';
+            return;
+        }
+        await loadUserData();
+        setupEvents();
+        await fetchMentors();
+    }
+
+    document.getElementById('logoutBtn').addEventListener('click', logout);
+    initPage();
+</script>
+</body>
+</html>

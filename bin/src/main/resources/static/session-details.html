@@ -371,7 +371,6 @@
         <nav class="nav-links">
             <a href="dashboard.html" class="nav-link" data-tooltip="Dashboard"><i class="fas fa-home"></i></a>
             <a href="userProfile.html" class="nav-link" data-tooltip="Profile"><i class="fas fa-user"></i></a>
-            <a href="chat.html" class="nav-link" data-tooltip="Messages"><i class="fas fa-envelope"></i></a>
             <a href="ai-matching.html" class="nav-link" data-tooltip="AI Matching"><i class="fas fa-robot"></i></a>
             <a href="browse-skills.html" class="nav-link active" data-tooltip="Browse Skills"><i class="fas fa-search"></i></a>
         </nav>
@@ -418,7 +417,6 @@
                 </div>
                 <div class="hero-actions">
                     <button class="btn btn-primary btn-sm" id="heroBookBtn"><i class="fas fa-calendar-plus"></i> Book Session</button>
-                    <button class="btn btn-outline btn-sm" id="heroMessageBtn"><i class="fas fa-envelope"></i> Message</button>
                     <button class="btn btn-ghost btn-sm" id="heroSaveBtn"><i class="far fa-heart"></i> Save</button>
                 </div>
             </div>
@@ -798,11 +796,6 @@
         // Scroll to booking form
         document.getElementById('heroBookBtn').addEventListener('click', () => {
             document.getElementById('bookingFormCard').scrollIntoView({ behavior:'smooth', block:'start' });
-        });
-
-        // Message
-        document.getElementById('heroMessageBtn').addEventListener('click', () => {
-            window.location.href = 'chat.html?mentorId=' + mentorId;
         });
 
         // Save/favourite

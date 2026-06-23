@@ -1,5 +1,5 @@
 // model/UserPreferences.java
-package model;
+package src.main.java.model;
 
 import jakarta.persistence.*;
 import com.fasterxml.jackson.annotation.JsonIgnore;

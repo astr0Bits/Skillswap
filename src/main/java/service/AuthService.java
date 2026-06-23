@@ -1,7 +1,6 @@
 package service;
 
 import enums.Role;
-import exception.PasswordReuseException;
 import model.PasswordHistory;
 import model.User;
 import org.slf4j.Logger;
@@ -22,6 +21,7 @@ import repository.PasswordHistoryRepository;
 import repository.UserRepository;
 import security.UserDetailsImpl;
 import security.jwt.JwtUtils;
+import src.main.java.exception.PasswordReuseException;
 import validator.InputSanitizer;
 import jakarta.servlet.http.HttpServletRequest;
 

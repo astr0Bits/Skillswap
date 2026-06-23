@@ -1,4 +1,4 @@
-package payload;
+package src.main.java.payload;
 
 /*Standard response format for success or error messages 
  * (e.g., after registration, password reset). Used to return a 

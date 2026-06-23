@@ -1,4 +1,4 @@
-package dto;
+package src.main.java.dto;
 
 public class BadgeDTO {
 

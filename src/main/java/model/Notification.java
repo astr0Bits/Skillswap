@@ -1,5 +1,5 @@
 // model/Notification.java
-package model;
+package src.main.java.model;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;

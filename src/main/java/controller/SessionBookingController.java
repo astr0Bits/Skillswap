@@ -1,11 +1,9 @@
-package controller;
+package src.main.java.controller;
 
 import dto.BookSessionRequest;
 import dto.CreateSessionDTO;
 import enums.SessionMode;
 import enums.SessionStatus;
-import exception.AvailabilityException;
-import exception.ResourceNotFoundException;
 import model.CreditTransaction;
 import model.MentorAvailability;
 import model.Session;
@@ -18,6 +16,9 @@ import repository.*;
 import security.UserDetailsImpl;
 import service.AiSummaryService;
 import service.SessionEmailService;
+import src.main.java.exception.AvailabilityException;
+import src.main.java.exception.ResourceNotFoundException;
+
 import org.springframework.transaction.annotation.Transactional;
 import validator.InputSanitizer;
 import java.time.LocalDateTime;
