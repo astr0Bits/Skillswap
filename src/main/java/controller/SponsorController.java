@@ -9,7 +9,9 @@ import model.SponsorProgram;
 import model.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -197,6 +199,60 @@ public class SponsorController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Payment service unavailable, please try again later"));
         }
+    }
+
+    @GetMapping("/talent")
+    public ResponseEntity<?> getTalent(Authentication auth) {
+        getUserFromAuth(auth); // verify authenticated sponsor
+        List<Map<String, Object>> result = sponsorService.getTalentPool().stream()
+            .map(u -> Map.<String, Object>of(
+                "id",       u.getId(),
+                "name",     u.getName() != null ? u.getName() : "",
+                "email",    u.getEmail() != null ? u.getEmail() : "",
+                "location", u.getLocation() != null ? u.getLocation() : ""
+            ))
+            .toList();
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/reports/export")
+    public ResponseEntity<String> exportReport(Authentication auth) {
+        User sponsor = getUserFromAuth(auth);
+        List<model.SponsorProgram> programs = sponsorService.getPrograms(sponsor);
+        List<model.SponsorCoupon>  coupons  = sponsorService.getActiveCoupons(sponsor);
+
+        StringBuilder csv = new StringBuilder();
+        csv.append("Programs\n");
+        csv.append("Title,Description,Status,Payment Status\n");
+        for (model.SponsorProgram p : programs) {
+            csv.append(csvEscape(p.getTitle())).append(',')
+               .append(csvEscape(p.getDescription())).append(',')
+               .append(csvEscape(p.getStatus())).append(',')
+               .append(csvEscape(p.getPaymentStatus())).append('\n');
+        }
+        csv.append("\nCoupons\n");
+        csv.append("Code,Discount (%),Max Uses,Used Count,Expiry Date,Active\n");
+        for (model.SponsorCoupon c : coupons) {
+            csv.append(csvEscape(c.getCode())).append(',')
+               .append(c.getDiscount() != null ? c.getDiscount() : 0).append(',')
+               .append(c.getMaxUses()   != null ? c.getMaxUses()   : 0).append(',')
+               .append(c.getUsedCount() != null ? c.getUsedCount() : 0).append(',')
+               .append(csvEscape(c.getExpiryDate())).append(',')
+               .append(c.isActive()).append('\n');
+        }
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.parseMediaType("text/csv"));
+        headers.set(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"sponsor-report.csv\"");
+        return new ResponseEntity<>(csv.toString(), headers, HttpStatus.OK);
+    }
+
+    private static String csvEscape(String val) {
+        if (val == null) return "";
+        if (val.contains(",") || val.contains("\"") || val.contains("\n")) {
+            return "\"" + val.replace("\"", "\"\"") + "\"";
+        }
+        return val;
     }
 
     private User getUserFromAuth(Authentication auth) {

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<html lang="en">
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -50,9 +50,9 @@
         </a>
     </nav>
     <div class="sidebar-footer">
-        <div class="user-avatar-sm" th:text="${#strings.substring(sponsor.name,0,2).toUpperCase()}">SP</div>
+        <div class="user-avatar-sm" id="sidebarAvatar">SP</div>
         <div class="user-details">
-            <h4 th:text="${sponsor.name}">Organization</h4>
+            <h4 id="sidebarName">Organization</h4>
             <p>Sponsor</p>
         </div>
         <button class="logout-btn" onclick="logout()" title="Log out">
@@ -65,44 +65,95 @@
     <header class="topbar">
         <span class="topbar-title">Talent Pool</span>
         <div class="topbar-right">
-            <span style="font-size:13px;color:var(--muted);" th:text="${#lists.size(learners)} + ' learners'">0 learners</span>
+            <span id="learnerCount" style="font-size:13px;color:var(--muted);">0 learners</span>
         </div>
     </header>
 
     <div class="page">
-
-        <div class="card" th:if="${not #lists.isEmpty(learners)}">
+        <div class="card">
             <div class="section-head">
                 <span class="section-title">Active Learners</span>
             </div>
-            <div style="padding:4px 20px 20px;">
-                <div class="talent-grid">
-                    <div class="talent-card" th:each="l : ${learners}">
-                        <div class="talent-avatar" th:text="${#strings.substring(l.name,0,2).toUpperCase()}">AB</div>
-                        <div class="talent-name"  th:text="${l.name}">Learner Name</div>
-                        <div class="talent-email" th:text="${l.email}">email@example.com</div>
-                        <div class="talent-loc"   th:text="${l.location != null ? l.location : 'UAE'}">UAE</div>
-                    </div>
-                </div>
+            <div id="talentContainer" style="padding:4px 20px 20px;">
+                <div class="empty-state" style="padding:60px 0;">Loading…</div>
             </div>
         </div>
-
-        <div class="card" th:if="${#lists.isEmpty(learners)}">
-            <div class="empty-state" style="padding:60px 20px;">
-                <svg width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" style="color:var(--border);display:block;margin:0 auto 12px;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                No learners have registered on the platform yet.
-            </div>
-        </div>
-
     </div>
 </div>
 
 <script>
+    const token = localStorage.getItem('jwtToken');
+    if (!token) { window.location.href = '/login.html'; }
+
+    function authHeaders() {
+        return { 'Authorization': 'Bearer ' + token };
+    }
+
+    function escHtml(str) {
+        const d = document.createElement('div');
+        d.textContent = str != null ? String(str) : '';
+        return d.innerHTML;
+    }
+
+    async function loadUserInfo() {
+        try {
+            const res = await fetch('/api/auth/me', { headers: authHeaders() });
+            if (res.ok) {
+                const u = await res.json();
+                const name = u.name || u.username || 'Sponsor';
+                document.getElementById('sidebarName').textContent = name;
+                document.getElementById('sidebarAvatar').textContent = name.substring(0, 2).toUpperCase();
+            }
+        } catch (e) { /* non-blocking */ }
+    }
+
+    async function loadTalent() {
+        try {
+            const res = await fetch('/api/sponsors/talent', { headers: authHeaders() });
+            if (!res.ok) return;
+            const learners = await res.json();
+            const container = document.getElementById('talentContainer');
+            const count     = document.getElementById('learnerCount');
+
+            count.textContent = learners.length + ' learners';
+
+            if (learners.length === 0) {
+                container.innerHTML = `<div class="empty-state" style="padding:60px 0;">
+                    <svg width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"
+                         style="color:var(--border);display:block;margin:0 auto 12px;">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                        <circle cx="9" cy="7" r="4"/>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                    </svg>
+                    No learners have registered on the platform yet.
+                </div>`;
+                return;
+            }
+
+            container.innerHTML = `<div class="talent-grid">${
+                learners.map(l => {
+                    const initials = (l.name || 'AB').substring(0, 2).toUpperCase();
+                    const location = l.location || 'UAE';
+                    return `<div class="talent-card">
+                        <div class="talent-avatar">${escHtml(initials)}</div>
+                        <div class="talent-name">${escHtml(l.name)}</div>
+                        <div class="talent-email">${escHtml(l.email)}</div>
+                        <div class="talent-loc">${escHtml(location)}</div>
+                    </div>`;
+                }).join('')
+            }</div>`;
+        } catch (e) { /* non-blocking */ }
+    }
+
     function logout() {
         localStorage.removeItem('jwtToken');
         document.cookie = 'jwtToken=; path=/; max-age=0';
         window.location.href = '/login.html';
     }
+
+    loadUserInfo();
+    loadTalent();
 </script>
 </body>
 </html>
