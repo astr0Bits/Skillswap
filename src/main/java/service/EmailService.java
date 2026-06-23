@@ -1,6 +1,6 @@
-package service;
-import model.Session;
-import model.ContactMessage;
+package src.main.java.service;
+import src.main.java.model.Session;
+import src.main.java.model.ContactMessage;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import org.springframework.beans.factory.annotation.Value;

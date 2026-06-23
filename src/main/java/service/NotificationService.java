@@ -1,5 +1,5 @@
 // service/NotificationService.java
-package service;
+package src.main.java.service;
 
 import dto.NotificationDTO;
 import model.Notification;

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -50,9 +50,9 @@
         </a>
     </nav>
     <div class="sidebar-footer">
-        <div class="user-avatar-sm" id="sidebarAvatar">SP</div>
+        <div class="user-avatar-sm" th:text="${#strings.substring(sponsor.name,0,2).toUpperCase()}">SP</div>
         <div class="user-details">
-            <h4 id="sidebarName">Organization</h4>
+            <h4 th:text="${sponsor.name}">Organization</h4>
             <p>Sponsor</p>
         </div>
         <button class="logout-btn" onclick="logout()" title="Log out">
@@ -107,7 +107,7 @@
                         <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
                     </div>
                     <div class="metric-label">Credit Usage</div>
-                    <div class="metric-value" id="metricCredits">—</div>
+                    <div class="metric-value" th:text="${metrics.creditsUsed}">0</div>
                     <div class="metric-sub">Credits used this month</div>
                 </div>
                 <div class="metric-card">
@@ -115,7 +115,7 @@
                         <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
                     </div>
                     <div class="metric-label">Skills Covered</div>
-                    <div class="metric-value" id="metricSkills">—</div>
+                    <div class="metric-value" th:text="${metrics.popularSkills}">0</div>
                     <div class="metric-sub">Across active programs</div>
                 </div>
                 <div class="metric-card">
@@ -123,7 +123,7 @@
                         <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                     </div>
                     <div class="metric-label">Active Programs</div>
-                    <div class="metric-value" id="metricActivePrograms">—</div>
+                    <div class="metric-value" th:text="${metrics.impactReports}">0</div>
                     <div class="metric-sub">Currently running</div>
                 </div>
                 <div class="metric-card">
@@ -131,7 +131,7 @@
                         <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                     </div>
                     <div class="metric-label">Participation</div>
-                    <div class="metric-value" id="metricParticipation">—</div>
+                    <div class="metric-value" th:text="${metrics.participation + '%'}">0%</div>
                     <div class="metric-sub">Coupon usage rate</div>
                 </div>
             </div>
@@ -146,8 +146,17 @@
                     Add Program
                 </a>
             </div>
-            <div id="programsGrid" class="programs-grid">
-                <div class="empty-state" style="grid-column:1/-1">Loading…</div>
+            <div class="programs-grid">
+                <div class="program-card" th:each="program : ${programs}">
+                    <span class="badge"
+                          th:classappend="${program.status == 'ACTIVE'} ? 'badge-active' : (${program.status == 'PENDING'} ? 'badge-pending' : 'badge-inactive')"
+                          th:text="${program.status}">Active</span>
+                    <div class="prog-title" th:text="${program.title}">Program Title</div>
+                    <div class="prog-desc"  th:text="${program.description}">Description</div>
+                </div>
+                <div class="empty-state" th:if="${#lists.isEmpty(programs)}" style="grid-column:1/-1">
+                    No programs yet. <a href="sponsor-sponsorships.html">Create one</a>
+                </div>
             </div>
         </div>
 
@@ -160,8 +169,22 @@
                     Generate
                 </a>
             </div>
-            <div id="couponsList" class="coupons-list">
-                <div class="empty-state">Loading…</div>
+            <div class="coupons-list">
+                <div class="coupon-row" th:each="coupon : ${coupons}">
+                    <div>
+                        <div class="coupon-code"   th:text="${coupon.code}">CODE</div>
+                        <div class="coupon-detail" th:text="${coupon.discount + '% off · Expires ' + (coupon.expiryDate != null ? coupon.expiryDate : 'N/A')}">—</div>
+                    </div>
+                    <div class="coupon-right">
+                        <div class="coupon-uses" th:text="${coupon.usedCount + '/' + coupon.maxUses + ' used'}">0/0 used</div>
+                        <span class="badge"
+                              th:classappend="${coupon.active} ? 'badge-active' : 'badge-inactive'"
+                              th:text="${coupon.active} ? 'Active' : 'Expired'">Active</span>
+                    </div>
+                </div>
+                <div class="empty-state" th:if="${#lists.isEmpty(coupons)}">
+                    No coupons yet. <a href="sponsor-coupons.html">Generate one</a>
+                </div>
             </div>
         </div>
 
@@ -169,104 +192,11 @@
 </div>
 
 <script>
-    const token = localStorage.getItem('jwtToken');
-    if (!token) { window.location.href = '/login.html'; }
-
-    function authHeaders() {
-        return { 'Authorization': 'Bearer ' + token };
-    }
-
-    function escHtml(str) {
-        const d = document.createElement('div');
-        d.textContent = str != null ? String(str) : '';
-        return d.innerHTML;
-    }
-
-    async function loadUserInfo() {
-        try {
-            const res = await fetch('/api/auth/me', { headers: authHeaders() });
-            if (res.ok) {
-                const u = await res.json();
-                const name = u.name || u.username || 'Sponsor';
-                document.getElementById('sidebarName').textContent = name;
-                document.getElementById('sidebarAvatar').textContent = name.substring(0, 2).toUpperCase();
-            }
-        } catch (e) { /* non-blocking */ }
-    }
-
-    async function loadStats() {
-        try {
-            const res = await fetch('/api/sponsors/me/stats', { headers: authHeaders() });
-            if (!res.ok) return;
-            const data = await res.json();
-            document.getElementById('metricCredits').textContent       = data.creditsUsed ?? 0;
-            document.getElementById('metricSkills').textContent        = data.popularSkills ?? 0;
-            document.getElementById('metricActivePrograms').textContent = data.impactReports ?? 0;
-            document.getElementById('metricParticipation').textContent = (data.participation ?? 0) + '%';
-        } catch (e) { /* non-blocking */ }
-    }
-
-    async function loadPrograms() {
-        try {
-            const res = await fetch('/api/sponsors/programs', { headers: authHeaders() });
-            if (!res.ok) return;
-            const programs = await res.json();
-            const grid = document.getElementById('programsGrid');
-            if (programs.length === 0) {
-                grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1">No programs yet. <a href="sponsor-sponsorships.html">Create one</a></div>';
-                return;
-            }
-            grid.innerHTML = programs.map(p => {
-                const cls = p.status === 'ACTIVE' ? 'badge-active'
-                          : p.status === 'PENDING' ? 'badge-pending'
-                          : 'badge-inactive';
-                return `<div class="program-card">
-                    <span class="badge ${cls}">${escHtml(p.status)}</span>
-                    <div class="prog-title">${escHtml(p.title)}</div>
-                    <div class="prog-desc">${escHtml(p.description)}</div>
-                </div>`;
-            }).join('');
-        } catch (e) { /* non-blocking */ }
-    }
-
-    async function loadCoupons() {
-        try {
-            const res = await fetch('/api/sponsors/coupons', { headers: authHeaders() });
-            if (!res.ok) return;
-            const coupons = await res.json();
-            const list = document.getElementById('couponsList');
-            if (coupons.length === 0) {
-                list.innerHTML = '<div class="empty-state">No coupons yet. <a href="sponsor-coupons.html">Generate one</a></div>';
-                return;
-            }
-            list.innerHTML = coupons.map(c => {
-                const cls   = c.active ? 'badge-active' : 'badge-inactive';
-                const label = c.active ? 'Active' : 'Expired';
-                const exp   = c.expiryDate || 'N/A';
-                return `<div class="coupon-row">
-                    <div>
-                        <div class="coupon-code">${escHtml(c.code)}</div>
-                        <div class="coupon-detail">${escHtml(c.discount)}% off · Expires ${escHtml(exp)}</div>
-                    </div>
-                    <div class="coupon-right">
-                        <div class="coupon-uses">${escHtml(c.usedCount)}/${escHtml(c.maxUses)} used</div>
-                        <span class="badge ${cls}">${label}</span>
-                    </div>
-                </div>`;
-            }).join('');
-        } catch (e) { /* non-blocking */ }
-    }
-
     function logout() {
         localStorage.removeItem('jwtToken');
         document.cookie = 'jwtToken=; path=/; max-age=0';
         window.location.href = '/login.html';
     }
-
-    loadUserInfo();
-    loadStats();
-    loadPrograms();
-    loadCoupons();
 </script>
 </body>
 </html>

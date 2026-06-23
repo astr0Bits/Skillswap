@@ -1,4 +1,4 @@
-package service;
+package src.main.java.service;
 
 import dev.samstevens.totp.code.*;
 import dev.samstevens.totp.qr.QrData;

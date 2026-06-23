@@ -1,4 +1,4 @@
-package service;
+package src.main.java.service;
 /* This is the bridge between Spring Security and the user data. 
  * It loads user details (including password, authorities, enabled status) by email.
  * It is used both by form login and by JWT authentication.*/

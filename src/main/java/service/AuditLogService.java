@@ -1,4 +1,4 @@
-package service;
+package src.main.java.service;
 /*Centralises audit logging. Should be called from authentication filters,
  *  login controllers, and any sensitive operations.*/
 

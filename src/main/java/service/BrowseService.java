@@ -1,4 +1,4 @@
-package service;
+package src.main.java.service;
 
 import dto.MentorBrowseDTO;
 import model.User;

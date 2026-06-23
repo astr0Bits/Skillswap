@@ -25,7 +25,7 @@
 //    }
 //}
 
-package service;
+package src.main.java.service;
 
 import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
